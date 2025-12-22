@@ -25,4 +25,13 @@ type (
 		From string
 		To   string
 	}
+
+	CreateContactCommand struct {
+		IssuerId      uuid.UUID         `json:"issuer_id"`
+		ApplicationId uuid.UUID         `json:"application_id"`
+		Type          string            `json:"type"`
+		Name          string            `json:"name"`
+		Username      string            `json:"username"`
+		Metadata      map[string]string `json:"metadata"`
+	}
 )
