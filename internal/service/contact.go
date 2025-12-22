@@ -38,23 +38,23 @@ func (s *ContactService) Search(ctx context.Context, filter *dto.ContactSearchFi
 
 func (s *ContactService) Create(ctx context.Context, input *model.Contact) (*model.Contact, error) {
 	if input == nil {
-		return nil, errors.InvalidArgument("contact.create.invalid", errors.AppendMessage("input is nil"))
+		return nil, errors.InvalidArgument("input is nil")
 	}
 
 	if input.Username == "" {
-		return nil, errors.InvalidArgument("contact.create.invalid", errors.AppendMessage("username is required"))
+		return nil, errors.InvalidArgument("username is required")
 	}
 
 	if input.IssuerId == uuid.Nil {
-		return nil, errors.InvalidArgument("contact.create.invalid", errors.AppendMessage("issuerId is required"))
+		return nil, errors.InvalidArgument("issuerId is required")
 	}
 
 	if input.ApplicationId == uuid.Nil {
-		return nil, errors.InvalidArgument("contact.create.invalid", errors.AppendMessage("applicationId is required"))
+		return nil, errors.InvalidArgument("applicationId is required")
 	}
 
 	if !isValidContactType(input.Type) {
-		return nil, errors.InvalidArgument("contact.create.invalid", errors.AppendMessage("type is invalid"))
+		return nil, errors.InvalidArgument("type is invalid")
 	}
 
 	out, err := s.store.Create(ctx, input)
@@ -67,15 +67,15 @@ func (s *ContactService) Create(ctx context.Context, input *model.Contact) (*mod
 
 func (s *ContactService) Update(ctx context.Context, input *dto.UpdateContactCommand) (*model.Contact, error) {
 	if input == nil {
-		return nil, errors.InvalidArgument("contact.update.invalid", errors.AppendMessage("input is nil"))
+		return nil, errors.InvalidArgument("input is nil")
 	}
 
 	if input.Id == uuid.Nil {
-		return nil, errors.InvalidArgument("contact.update.invalid", errors.AppendMessage("id is required"))
+		return nil, errors.InvalidArgument("id is required")
 	}
 
 	if input.Username == "" {
-		return nil, errors.InvalidArgument("contact.update.invalid", errors.AppendMessage("username is required"))
+		return nil, errors.InvalidArgument("username is required")
 	}
 
 	out, err := s.store.Update(ctx, input)
@@ -88,7 +88,7 @@ func (s *ContactService) Update(ctx context.Context, input *dto.UpdateContactCom
 
 func (s *ContactService) Delete(ctx context.Context, id uuid.UUID) error {
 	if id == uuid.Nil {
-		return errors.InvalidArgument("contact.delete.invalid", errors.AppendMessage("id is required"))
+		return errors.InvalidArgument("id is required")
 	}
 
 	err := s.store.Delete(ctx, id)
