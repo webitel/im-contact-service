@@ -3,10 +3,15 @@ package integration
 import (
 	"context"
 	"log"
+	"log/slog"
+	"testing"
 
 	"github.com/go-faker/faker/v4"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
+	"github.com/webitel/im-contact-service/cmd"
+	"github.com/webitel/im-contact-service/config"
+	"github.com/webitel/im-contact-service/infra/db/pg"
 	"github.com/webitel/im-contact-service/internal/model"
 	"github.com/webitel/im-contact-service/internal/service/dto"
 	"github.com/webitel/im-contact-service/internal/store"
@@ -21,6 +26,10 @@ type ContactStoreTestSuite struct {
 	ctx               context.Context
 }
 
+func TestContactStoreTestSuite(t *testing.T) {
+	suite.Run(t, new(ContactStoreTestSuite))
+}
+
 func newContact(domain int, opts ...func(*model.Contact)) *model.Contact {
 	c := &model.Contact{
 		BaseModel: model.BaseModel{
@@ -28,7 +37,7 @@ func newContact(domain int, opts ...func(*model.Contact)) *model.Contact {
 		},
 		IssuerId:      uuid.New(),
 		ApplicationId: uuid.New(),
-		Type:          model.User,
+		Type:          "webitel",
 		Name:          "Antonio Banderas",
 		Username:      "a.banderas@webitel.com",
 		Metadata: map[string]string{
@@ -51,10 +60,37 @@ func (suite *ContactStoreTestSuite) SetupSuite() {
 	}
 
 	suite.postgresContainer = pgContainer
-	//TODO: add correct setup and migrations run
-	contactStore := postgres.NewContactStore()
+
+	mig := cmd.NewMigrator(&config.Config{Postgres: config.PostgresConfig{DSN: pgContainer.ConnectionString}}, slog.Default())
+	if err := mig.Run(suite.ctx); err != nil {
+		log.Fatal(err)
+	}
+
+	db, err := pg.New(suite.ctx, slog.Default(), pgContainer.ConnectionString)
+	if err != nil {
+		log.Fatal(err)
+	}
+	contactStore := postgres.NewContactStore(db)
 
 	suite.repo = contactStore
+}
+
+func (suite *ContactStoreTestSuite) SetupTest() {
+	truncateCmd := []string{
+		"psql",
+		"-U", "opensips",
+		"-d", "webitel",
+		"-c", "TRUNCATE TABLE im_contact.contact CASCADE;",
+	}
+
+	exitCode, _, err := suite.postgresContainer.Exec(suite.ctx, truncateCmd)
+	if err != nil {
+		log.Fatalf("failed to execute truncate command: %v", err)
+	}
+
+	if exitCode != 0 {
+		log.Fatalf("truncate command failed with exit code: %d", exitCode)
+	}
 }
 
 func (suite *ContactStoreTestSuite) TearDownSuite() {
@@ -88,17 +124,12 @@ func (suite *ContactStoreTestSuite) TestCreate_MissingUsername() {
 	suite.Error(err)
 }
 
-func (suite *ContactStoreTestSuite) TestCreate_InvalidDomain() {
-	contact := newContact(999999)
-
-	_, err := suite.repo.Create(suite.ctx, contact)
-	suite.Error(err)
-}
-
 func (suite *ContactStoreTestSuite) TestCreate_DuplicateUsername() {
 	c1 := newContact(1)
 	c2 := newContact(1, func(c *model.Contact) {
 		c.Username = c1.Username
+	}, func(c *model.Contact) {
+		c.IssuerId = c1.IssuerId
 	})
 
 	_, err := suite.repo.Create(suite.ctx, c1)
@@ -106,6 +137,35 @@ func (suite *ContactStoreTestSuite) TestCreate_DuplicateUsername() {
 
 	_, err = suite.repo.Create(suite.ctx, c2)
 	suite.Error(err)
+}
+
+func (suite *ContactStoreTestSuite) TestCreate_WithMetadata() {
+	contact := newContact(1, func(c *model.Contact) {
+		c.Metadata = map[string]string{
+			"lang":   "uk",
+			"tz":     "Europe/Kyiv",
+			"source": "landing",
+		}
+	})
+
+	created, err := suite.repo.Create(suite.ctx, contact)
+	suite.Require().NoError(err)
+
+	suite.NotNil(created.Metadata)
+	suite.Equal("uk", created.Metadata["lang"])
+	suite.Equal("Europe/Kyiv", created.Metadata["tz"])
+	suite.Equal("landing", created.Metadata["source"])
+}
+
+func (suite *ContactStoreTestSuite) TestCreate_WithNilMetadata() {
+	contact := newContact(1, func(c *model.Contact) {
+		c.Metadata = nil
+	})
+
+	created, err := suite.repo.Create(suite.ctx, contact)
+	suite.Require().NoError(err)
+
+	suite.True(len(created.Metadata) == 0)
 }
 
 //#endregion
@@ -118,8 +178,9 @@ func (suite *ContactStoreTestSuite) TestSearch_NoFilters() {
 	suite.Require().NoError(err)
 
 	res, err := suite.repo.Search(suite.ctx, &dto.ContactSearchFilter{
-		Page: 1,
-		Size: 10,
+		Page:     1,
+		Size:     10,
+		DomainId: 1,
 	})
 
 	suite.Require().NoError(err)
@@ -137,11 +198,14 @@ func (suite *ContactStoreTestSuite) TestSearch_Q_ByName() {
 	}))
 	suite.Require().NoError(err)
 
+	q := "Ang"
+
 	res, err := suite.repo.Search(suite.ctx, &dto.ContactSearchFilter{
-		Page:   1,
-		Size:   10,
-		Q:      "Ang",
-		Fields: []string{"name"},
+		Page:     1,
+		Size:     10,
+		Q:        &q,
+		Fields:   []string{"name", "id"},
+		DomainId: 1,
 	})
 
 	suite.Require().NoError(err)
@@ -161,9 +225,10 @@ func (suite *ContactStoreTestSuite) TestSearch_ByApplication() {
 	suite.Require().NoError(err)
 
 	res, err := suite.repo.Search(suite.ctx, &dto.ContactSearchFilter{
-		Page: 1,
-		Size: 10,
-		Apps: []string{appID.String()},
+		Page:     1,
+		Size:     10,
+		Apps:     []string{appID.String()},
+		DomainId: 1,
 	})
 
 	suite.Require().NoError(err)
@@ -179,9 +244,10 @@ func (suite *ContactStoreTestSuite) TestSearch_ByIssuer() {
 	suite.Require().NoError(err)
 
 	res, err := suite.repo.Search(suite.ctx, &dto.ContactSearchFilter{
-		Page:    1,
-		Size:    10,
-		Issuers: []string{issuer.String()},
+		Page:     1,
+		Size:     10,
+		Issuers:  []string{issuer.String()},
+		DomainId: 1,
 	})
 
 	suite.Require().NoError(err)
@@ -196,8 +262,9 @@ func (suite *ContactStoreTestSuite) TestSearch_Pagination() {
 	}
 
 	res, err := suite.repo.Search(suite.ctx, &dto.ContactSearchFilter{
-		Page: 2,
-		Size: 10,
+		Page:     2,
+		Size:     10,
+		DomainId: 1,
 	})
 
 	suite.Require().NoError(err)
@@ -205,10 +272,13 @@ func (suite *ContactStoreTestSuite) TestSearch_Pagination() {
 }
 
 func (suite *ContactStoreTestSuite) TestSearch_EmptyResult() {
+	q := "does-not-exist"
+
 	res, err := suite.repo.Search(suite.ctx, &dto.ContactSearchFilter{
-		Page: 1,
-		Size: 10,
-		Q:    "does-not-exist",
+		Page:     1,
+		Size:     10,
+		Q:        &q,
+		DomainId: 1,
 	})
 
 	suite.Require().NoError(err)
@@ -221,10 +291,16 @@ func (suite *ContactStoreTestSuite) TestSearch_EmptyResult() {
 func (suite *ContactStoreTestSuite) TestUpdate_HappyPath() {
 	created, _ := suite.repo.Create(suite.ctx, newContact(1))
 
+	var (
+		updatedName     string = "Angelina Jolie"
+		updatedUsername string = "a.jolie@webitel.com"
+	)
+
 	cmd := &dto.UpdateContactCommand{
 		Id:       created.Id,
-		Name:     "Angelina Jolie",
-		Username: "a.jolie@webitel.com",
+		DomainId: created.DomainId,
+		Name:     &updatedName,
+		Username: &updatedUsername,
 	}
 
 	updated, err := suite.repo.Update(suite.ctx, cmd)
@@ -232,6 +308,27 @@ func (suite *ContactStoreTestSuite) TestUpdate_HappyPath() {
 
 	suite.Equal("Angelina Jolie", updated.Name)
 	suite.Greater(updated.UpdatedAt, created.UpdatedAt)
+}
+
+func (suite *ContactStoreTestSuite) TestUpdate_Metadata_Clear() {
+	created, _ := suite.repo.Create(suite.ctx, newContact(1, func(c *model.Contact) {
+		c.Metadata = map[string]string{
+			"lang": "en",
+		}
+	}))
+
+	empty := map[string]string{}
+
+	cmd := &dto.UpdateContactCommand{
+		Id:       created.Id,
+		DomainId: created.DomainId,
+		Metadata: empty,
+	}
+
+	updated, err := suite.repo.Update(suite.ctx, cmd)
+	suite.Require().NoError(err)
+
+	suite.Empty(updated.Metadata)
 }
 
 func (suite *ContactStoreTestSuite) TestUpdate_NotFound() {
@@ -248,7 +345,11 @@ func (suite *ContactStoreTestSuite) TestUpdate_NotFound() {
 func (suite *ContactStoreTestSuite) TestDelete_HappyPath() {
 	created, _ := suite.repo.Create(suite.ctx, newContact(1))
 
-	err := suite.repo.Delete(suite.ctx, created.Id)
+	command := &dto.DeleteContactCommand{
+		Id:       created.Id,
+		DomainId: created.DomainId,
+	}
+	err := suite.repo.Delete(suite.ctx, command)
 	suite.Require().NoError(err)
 
 	res, _ := suite.repo.Search(suite.ctx, &dto.ContactSearchFilter{
