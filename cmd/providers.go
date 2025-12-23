@@ -11,6 +11,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/webitel/im-contact-service/config"
+	"github.com/webitel/im-contact-service/infra/db/pg"
 	"github.com/webitel/im-contact-service/infra/pubsub"
 	"github.com/webitel/im-contact-service/infra/pubsub/factory"
 	"github.com/webitel/im-contact-service/infra/pubsub/factory/amqp"
@@ -155,6 +156,22 @@ func ProvideGrpcServer(cfg *config.Config, l *slog.Logger, lc fx.Lifecycle) (*gr
 	})
 
 	return s, nil
+}
+
+func ProvideNewDBConnection(cfg *config.Config, l *slog.Logger, lc fx.Lifecycle) (*pg.PgxDB, error) {
+	db, err := pg.New(context.Background(), l, cfg.Postgres.DSN)
+	if err != nil {
+		return nil, err
+	}
+
+	lc.Append(fx.Hook{
+		OnStop: func(ctx context.Context) error {
+			db.Master().Close()
+			return nil
+		},
+	})
+
+	return db, err
 }
 
 func ProvideSD(cfg *config.Config, log *slog.Logger, lc fx.Lifecycle) (discovery.DiscoveryProvider, error) {

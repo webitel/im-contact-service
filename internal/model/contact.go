@@ -4,13 +4,13 @@ import "github.com/google/uuid"
 
 type Contact struct {
 	BaseModel
-	IssuerId      uuid.UUID   `json:"issuer_id"`
-	ApplicationId uuid.UUID   `json:"application_id"`
-	Type          ContactType `json:"type"`
+	IssuerId      uuid.UUID `json:"issuer_id" db:"issuer_id"`
+	ApplicationId uuid.UUID `json:"application_id" db:"application_id"`
+	Type          string    `json:"type" db:"type"`
 
-	Name     string            `json:"name"`
-	Username string            `json:"username"`
-	Metadata map[string]string `json:"metadata"`
+	Name     string            `json:"name" db:"name"`
+	Username string            `json:"username" db:"username"`
+	Metadata map[string]string `json:"metadata" db:"metadata"`
 }
 
 func (c *Contact) Equal(compare *Contact) bool {
