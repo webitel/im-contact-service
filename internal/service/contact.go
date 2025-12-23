@@ -60,8 +60,8 @@ func (s *ContactService) Create(ctx context.Context, input *model.Contact) (*mod
 		return nil, err
 	}
 
-	// We pass only the event object. The dispatcher will call event.Topic() internally.
-	if err := s.publisher.Publish(ctx, domain.NewContactCreatedEvent(out)); err != nil {
+	event := domain.NewContactCreatedEvent(out)
+	if err := s.publisher.Publish(ctx, event); err != nil {
 		return out, err
 	}
 
@@ -79,7 +79,8 @@ func (s *ContactService) Update(ctx context.Context, input *dto.UpdateContactCom
 		return nil, err
 	}
 
-	if err := s.publisher.Publish(ctx, domain.NewContactUpdatedEvent(out)); err != nil {
+	event := domain.NewContactUpdatedEvent(out)
+	if err := s.publisher.Publish(ctx, event); err != nil {
 		return out, err
 	}
 

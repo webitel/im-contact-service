@@ -20,7 +20,6 @@ const (
 	ContactDeletedTopic = "contact.deleted"
 )
 
-// --- ContactCreatedEvent ---
 type ContactCreatedEvent struct {
 	ContactID     uuid.UUID `json:"contact_id"`
 	Name          string    `json:"name"`
@@ -47,7 +46,6 @@ func NewContactCreatedEvent(m *model.Contact) *ContactCreatedEvent {
 	}
 }
 
-// --- ContactUpdatedEvent ---
 type ContactUpdatedEvent struct {
 	ContactID uuid.UUID `json:"contact_id"`
 	Name      string    `json:"name"`
@@ -70,7 +68,6 @@ func NewContactUpdatedEvent(m *model.Contact) *ContactUpdatedEvent {
 	}
 }
 
-// --- ContactDeletedEvent ---
 type ContactDeletedEvent struct {
 	ContactID uuid.UUID `json:"contact_id"`
 	OccuredAt time.Time `json:"occurred_at"`
