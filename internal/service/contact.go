@@ -21,8 +21,9 @@ type Contacter interface {
 }
 
 // EventPublisher defines the contract for publishing domain events.
+// Note: We removed the 'topic string' argument because the event knows its own topic.
 type EventPublisher interface {
-	Publish(ctx context.Context, topic string, event any) error
+	Publish(ctx context.Context, event domain.DomainEvent) error
 }
 
 type ContactService struct {
@@ -57,8 +58,8 @@ func (s *ContactService) Create(ctx context.Context, input *model.Contact) (*mod
 		return nil, err
 	}
 
-	event := domain.NewContactCreatedEvent(out)
-	if err := s.publisher.Publish(ctx, domain.ContactCreatedTopic, event); err != nil {
+	// We pass only the event object. The dispatcher will call event.Topic() internally.
+	if err := s.publisher.Publish(ctx, domain.NewContactCreatedEvent(out)); err != nil {
 		return out, err
 	}
 
@@ -76,8 +77,7 @@ func (s *ContactService) Update(ctx context.Context, input *dto.UpdateContactCom
 		return nil, err
 	}
 
-	event := domain.NewContactUpdatedEvent(out)
-	if err := s.publisher.Publish(ctx, domain.ContactUpdatedTopic, event); err != nil {
+	if err := s.publisher.Publish(ctx, domain.NewContactUpdatedEvent(out)); err != nil {
 		return out, err
 	}
 
@@ -97,8 +97,8 @@ func (s *ContactService) Delete(ctx context.Context, input *dto.DeleteContactCom
 		return err
 	}
 
-	event := domain.NewContactDeletedEvent(input.Id)
-	return s.publisher.Publish(ctx, domain.ContactDeletedTopic, event)
+	// Event handles its own topic and timestamp logic.
+	return s.publisher.Publish(ctx, domain.NewContactDeletedEvent(input.Id))
 }
 
 // CanSend checks if a message can be sent to/from a contact.
