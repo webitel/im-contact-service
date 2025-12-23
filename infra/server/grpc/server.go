@@ -31,6 +31,7 @@ func New(addr string, log *slog.Logger) (*Server, error) {
 	s := grpc.NewServer(grpc.ChainUnaryInterceptor(
 		interceptors.UnaryErrorInterceptor,
 		interceptors.NewUnaryAuthInterceptor(),
+		interceptors.RecoveryUnaryServerInterceptor(log),
 		protovalidate_middleware.UnaryServerInterceptor(validator),
 	))
 
