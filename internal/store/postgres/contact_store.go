@@ -1,4 +1,4 @@
- package postgres
+package postgres
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
 	"github.com/webitel/im-contact-service/infra/db/pg"
-	"github.com/webitel/im-contact-service/internal/model"
+	"github.com/webitel/im-contact-service/internal/domain/model"
 	"github.com/webitel/im-contact-service/internal/service/dto"
 	"github.com/webitel/im-contact-service/internal/store"
 )

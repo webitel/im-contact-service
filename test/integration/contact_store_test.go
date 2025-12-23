@@ -12,7 +12,7 @@ import (
 	"github.com/webitel/im-contact-service/cmd"
 	"github.com/webitel/im-contact-service/config"
 	"github.com/webitel/im-contact-service/infra/db/pg"
-	"github.com/webitel/im-contact-service/internal/model"
+	"github.com/webitel/im-contact-service/internal/domain/model"
 	"github.com/webitel/im-contact-service/internal/service/dto"
 	"github.com/webitel/im-contact-service/internal/store"
 	"github.com/webitel/im-contact-service/internal/store/postgres"

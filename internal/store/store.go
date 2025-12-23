@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 
-	"github.com/webitel/im-contact-service/internal/model"
+	"github.com/webitel/im-contact-service/internal/domain/model"
 	"github.com/webitel/im-contact-service/internal/service/dto"
 )
 
