@@ -26,3 +26,8 @@ func (c *Contact) Equal(compare *Contact) bool {
 		c.Type == compare.Type &&
 		c.Username == compare.Username
 }
+
+func ContactAllowedFields() []string {
+	return []string{"issuer_id", "application_id", "type", "name", "username", "metadata",
+		"id", "domain_id", "created_by", "updated_by", "created_at", "updated_at"}
+}

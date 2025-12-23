@@ -3,7 +3,6 @@
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
@@ -88,36 +87,27 @@ func (c *contactStore) Search(ctx context.Context, filter *dto.ContactSearchFilt
 		*filter.Q += "%"
 	}
 
-	var (
-		fields = strings.Join(filter.Fields, ",")
-		size   = func(lim int32) int32 {
-			if filter.Size < 1 {
-				return 1
-			}
-			return filter.Size + 1
-		}(filter.Size)
-		sort = func(order string) string {
-			if len(order) > 2 {
-				if order[0] == '+' {
-					return order[0:] + " asc"
-				} else if order[0] == '-' {
-					return order[0:] + " desc"
-				}
-			}
+	selectFields := "*"
+	if len(filter.Fields) > 0 {
+		selectFields = strings.Join(store.SanitizeFields(filter.Fields, model.ContactAllowedFields()), ",")
+	}
 
-			return "created_at desc"
-		}(filter.Sort)
-		query = `
-			select
-		` + fields + `
-			from im_contact.contact
-			where domain_id = @domain_id
-				and (@ids::uuid[] is null or id = any(@ids::uuid[]))
-				and (@Q::text is null or username ilike @Q or name ilike @Q)
-				and (@apps::text[] is null or application_id = any(@apps::text[]))
-				and (@issuers::text[] is null or issuer_id = any(@issuers::text[]))
-				and (@types::text[] is null or type = any(@types::text[]))
-			order by ` + sort + ` limit ` + strconv.Itoa(int(size)) + ` offset ` + strconv.Itoa(int((filter.Page-1)*filter.Size))
+	sortClause := store.ValidateAndFormatSort(filter.Sort, model.ContactAllowedFields())
+	limit := max(filter.Size, 1)
+	offset := (filter.Page - 1) * filter.Size
+
+	var (
+		query = fmt.Sprintf(`
+        SELECT %s
+        FROM im_contact.contact
+        WHERE domain_id = @domain_id
+            AND (@ids::uuid[] IS NULL OR id = ANY(@ids::uuid[]))
+            AND (@Q::text IS NULL OR username ILIKE @Q OR name ILIKE @Q)
+            AND (@apps::text[] IS NULL OR application_id = ANY(@apps::text[]))
+            AND (@issuers::text[] IS NULL OR issuer_id = ANY(@issuers::text[]))
+            AND (@types::text[] IS NULL OR type = ANY(@types::text[]))
+        ORDER BY %s
+        LIMIT @limit OFFSET @offset`, selectFields, sortClause)
 
 		args = pgx.NamedArgs{
 			"domain_id": filter.DomainId,
@@ -126,6 +116,8 @@ func (c *contactStore) Search(ctx context.Context, filter *dto.ContactSearchFilt
 			"apps":      filter.Apps,
 			"issuers":   filter.Issuers,
 			"types":     filter.Types,
+			"limit":     limit + 1,
+			"offset":    offset,
 		}
 		contacts []*model.Contact
 	)
