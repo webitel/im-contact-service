@@ -10,7 +10,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	uuid "github.com/google/uuid"
-	model "github.com/webitel/im-contact-service/internal/model"
+	model "github.com/webitel/im-contact-service/internal/domain/model"
 	dto "github.com/webitel/im-contact-service/internal/service/dto"
 )
 

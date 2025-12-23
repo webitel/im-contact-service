@@ -7,7 +7,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/webitel/im-contact-service/internal/service/domain"
+	"github.com/webitel/im-contact-service/internal/domain/events"
 )
 
 type EventDispatcher struct {
@@ -18,7 +18,7 @@ func NewEventDispatcher(pub message.Publisher) *EventDispatcher {
 	return &EventDispatcher{publisher: pub}
 }
 
-func (d *EventDispatcher) Publish(ctx context.Context, event domain.DomainEvent) error {
+func (d *EventDispatcher) Publish(ctx context.Context, event events.Event) error {
 	if event == nil {
 		return fmt.Errorf("event dispatcher: cannot publish nil event")
 	}

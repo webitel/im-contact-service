@@ -2,7 +2,7 @@ package mapper
 
 import (
 	impb "github.com/webitel/im-contact-service/gen/go/api/v1"
-	"github.com/webitel/im-contact-service/internal/model"
+	"github.com/webitel/im-contact-service/internal/domain/model"
 )
 
 func MarshalContact(contact *model.Contact) (*impb.Contact, error) {
