@@ -1,3 +1,6 @@
 package model
 
-const ServiceName = "im-contact-service"
+const (
+	ServiceName      = "im-contact-service"
+	ServiceNamespace = "webitel"
+)

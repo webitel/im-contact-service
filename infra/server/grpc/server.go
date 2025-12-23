@@ -1,4 +1,4 @@
-package grpc_srv
+package server
 
 import (
 	"log/slog"
@@ -7,9 +7,11 @@ import (
 	"strconv"
 
 	"buf.build/go/protovalidate"
-	protovalidate_middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/protovalidate"
-	"github.com/webitel/im-contact-service/infra/server/grpc/interceptors"
+	validatemiddleware "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/protovalidate"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
+
+	"github.com/webitel/im-contact-service/infra/server/grpc/interceptors"
 )
 
 type Server struct {
@@ -28,11 +30,14 @@ func New(addr string, log *slog.Logger) (*Server, error) {
 		return nil, err
 	}
 
-	s := grpc.NewServer(grpc.ChainUnaryInterceptor(
-		interceptors.UnaryErrorInterceptor,
-		interceptors.NewUnaryAuthInterceptor(),
-		protovalidate_middleware.UnaryServerInterceptor(validator),
-	))
+	s := grpc.NewServer(
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+		grpc.ChainUnaryInterceptor(
+			interceptors.UnaryErrorInterceptor,
+			interceptors.NewUnaryAuthInterceptor(),
+			validatemiddleware.UnaryServerInterceptor(validator),
+		),
+	)
 
 	l, err := net.Listen("tcp", addr)
 	if err != nil {

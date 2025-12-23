@@ -10,6 +10,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"github.com/webitel/im-contact-service/config"
+	"github.com/webitel/im-contact-service/internal/domain/model"
 )
 
 var (
@@ -22,7 +23,7 @@ var (
 
 func Run() error {
 	app := &cli.App{
-		Name:  "im-contact-service",
+		Name:  model.ServiceName,
 		Usage: "Microservice for Webitel [I]nstant [M]essaging contacts managing.",
 		Commands: []*cli.Command{
 			serverCmd(),

@@ -10,15 +10,30 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
+	"go.opentelemetry.io/contrib/bridges/otelslog"
+	"go.opentelemetry.io/otel/sdk/resource"
+	semconv "go.opentelemetry.io/otel/semconv/v1.38.0"
+	"go.uber.org/fx"
+
+	"github.com/webitel/webitel-go-kit/infra/discovery"
+	otelsdk "github.com/webitel/webitel-go-kit/infra/otel/sdk"
+
 	"github.com/webitel/im-contact-service/config"
 	"github.com/webitel/im-contact-service/infra/db/pg"
 	"github.com/webitel/im-contact-service/infra/pubsub"
 	"github.com/webitel/im-contact-service/infra/pubsub/factory"
 	"github.com/webitel/im-contact-service/infra/pubsub/factory/amqp"
 	grpc_srv "github.com/webitel/im-contact-service/infra/server/grpc"
-	"github.com/webitel/webitel-go-kit/infra/discovery"
+	"github.com/webitel/im-contact-service/internal/domain/model"
+
 	_ "github.com/webitel/webitel-go-kit/infra/discovery/consul"
-	"go.uber.org/fx"
+	// -------------------- plugin(s) -------------------- //
+	_ "github.com/webitel/webitel-go-kit/infra/otel/sdk/log/otlp"
+	_ "github.com/webitel/webitel-go-kit/infra/otel/sdk/log/stdout"
+	_ "github.com/webitel/webitel-go-kit/infra/otel/sdk/metric/otlp"
+	_ "github.com/webitel/webitel-go-kit/infra/otel/sdk/metric/stdout"
+	_ "github.com/webitel/webitel-go-kit/infra/otel/sdk/trace/otlp"
+	_ "github.com/webitel/webitel-go-kit/infra/otel/sdk/trace/stdout"
 )
 
 func ProvideLogger(cfg *config.Config, lc fx.Lifecycle) (*slog.Logger, error) {
@@ -65,6 +80,34 @@ func ProvideLogger(cfg *config.Config, lc fx.Lifecycle) (*slog.Logger, error) {
 			h = slog.NewTextHandler(f, opts)
 		}
 		handlers = append(handlers, h)
+	}
+
+	if logSettings.Otel {
+		service := resource.NewSchemaless(
+			semconv.ServiceName(model.ServiceName),
+			semconv.ServiceVersion(version),
+			semconv.ServiceInstanceID(cfg.Service.Id),
+			semconv.ServiceNamespace(model.ServiceNamespace),
+		)
+		otelHandler := otelslog.NewHandler("slog")
+
+		shutdown, err := otelsdk.Configure(context.Background(), otelsdk.WithResource(service),
+			otelsdk.WithLogBridge(
+				func() {
+					handlers = append(handlers, otelHandler)
+				},
+			),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		handlers = append(handlers)
+		lc.Append(fx.Hook{
+			OnStop: func(ctx context.Context) error {
+				return shutdown(ctx)
+			},
+		})
 	}
 
 	var finalHandler slog.Handler
@@ -182,12 +225,11 @@ func ProvideSD(cfg *config.Config, log *slog.Logger, lc fx.Lifecycle) (discovery
 		discovery.WithHeartbeat[discovery.DiscoveryProvider](true),
 		discovery.WithTimeout[discovery.DiscoveryProvider](time.Second*30),
 	)
-
 	if err != nil {
 		return nil, err
 	}
 
-	var si = new(discovery.ServiceInstance)
+	si := new(discovery.ServiceInstance)
 	{
 		si.Id = cfg.Service.Id
 		si.Name = "im-contact-service-name"
@@ -220,7 +262,6 @@ func ProvideSD(cfg *config.Config, log *slog.Logger, lc fx.Lifecycle) (discovery
 }
 
 func ProvidePubSub(cfg *config.Config, l *slog.Logger, lc fx.Lifecycle) (pubsub.Provider, error) {
-
 	var (
 		pubsubConfig  = cfg.Pubsub
 		loggerAdapter = watermill.NewSlogLogger(l)
