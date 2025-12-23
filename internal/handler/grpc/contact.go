@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/webitel/im-contact-service/internal/handler/grpc/mapper"
 
 	"github.com/webitel/webitel-go-kit/pkg/errors"
 
 	"github.com/webitel/im-contact-service/gen/go/api/v1"
+	"github.com/webitel/im-contact-service/internal/handler/grpc/mapper"
 	"github.com/webitel/im-contact-service/internal/model"
 	"github.com/webitel/im-contact-service/internal/service"
 	"github.com/webitel/im-contact-service/internal/service/dto"
@@ -33,7 +33,7 @@ func (c *ContactService) SearchContact(ctx context.Context, request *impb.Search
 	contacts, err := c.handler.Search(ctx, &dto.ContactSearchFilter{
 		Page:    request.GetPage(),
 		Size:    request.GetSize(),
-		Q:       request.GetQ(),
+		Q:       &request.Q,
 		Sort:    request.GetSort(),
 		Fields:  request.GetFields(),
 		Apps:    request.GetAppId(),
@@ -95,8 +95,8 @@ func (c *ContactService) UpdateContact(ctx context.Context, request *impb.Update
 
 	updatedContact, err := c.handler.Update(ctx, &dto.UpdateContactCommand{
 		Id:       contactId,
-		Name:     request.GetName(),
-		Username: request.GetUsername(),
+		Name:     &request.Name,
+		Username: &request.Username,
 		Metadata: request.GetMetadata(),
 	})
 	if err != nil {
@@ -111,7 +111,9 @@ func (c *ContactService) DeleteContact(ctx context.Context, request *impb.Delete
 	if err != nil {
 		return nil, errors.New("invalid contact id", errors.WithCause(err))
 	}
-	err = c.handler.Delete(ctx, contactId)
+	err = c.handler.Delete(ctx, &dto.DeleteContactCommand{
+		Id: contactId,
+	})
 	if err != nil {
 		return nil, err
 	}
