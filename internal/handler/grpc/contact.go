@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/webitel/im-contact-service/internal/handler/grpc/mapper"
 
 	"github.com/webitel/webitel-go-kit/pkg/errors"
 
@@ -34,20 +35,6 @@ func RegisterContactService(server *grpc_srv.Server, service *ContactService) er
 	return nil
 }
 
-func (c *ContactService) MarshalContact(contact *model.Contact) (*impb.Contact, error) {
-	return &impb.Contact{
-		Id:        contact.Id.String(),
-		IssId:     contact.IssuerId,
-		AppId:     contact.ApplicationId,
-		Type:      contact.Type,
-		Name:      contact.Name,
-		Username:  contact.Username,
-		Metadata:  contact.Metadata,
-		CreatedAt: contact.CreatedAt.UnixMilli(),
-		UpdatedAt: contact.UpdatedAt.UnixMilli(),
-	}, nil
-}
-
 func (c *ContactService) SearchContact(ctx context.Context, request *impb.SearchContactRequest) (*impb.ContactList, error) {
 	contacts, err := c.handler.Search(ctx, &dto.ContactSearchFilter{
 		Page:    request.GetPage(),
@@ -74,12 +61,13 @@ func (c *ContactService) SearchContact(ctx context.Context, request *impb.Search
 	}
 
 	for _, contact := range contacts {
-		marshaledContact, err := c.MarshalContact(contact)
+		marshaledContact, err := mapper.MarshalContact(contact)
 		if err != nil {
 			return nil, err
 		}
 		result.Contacts = append(result.Contacts, marshaledContact)
 	}
+
 	return result, nil
 }
 
@@ -102,7 +90,7 @@ func (c *ContactService) CreateContact(ctx context.Context, request *impb.Create
 		return nil, err
 	}
 
-	return c.MarshalContact(contact)
+	return mapper.MarshalContact(contact)
 }
 
 func (c *ContactService) UpdateContact(ctx context.Context, request *impb.UpdateContactRequest) (*impb.Contact, error) {
@@ -120,7 +108,8 @@ func (c *ContactService) UpdateContact(ctx context.Context, request *impb.Update
 	if err != nil {
 		return nil, err
 	}
-	return c.MarshalContact(updatedContact)
+
+	return mapper.MarshalContact(updatedContact)
 }
 
 func (c *ContactService) DeleteContact(ctx context.Context, request *impb.DeleteContactRequest) (*impb.Contact, error) {
@@ -132,6 +121,7 @@ func (c *ContactService) DeleteContact(ctx context.Context, request *impb.Delete
 	if err != nil {
 		return nil, err
 	}
+
 	return nil, nil
 }
 
