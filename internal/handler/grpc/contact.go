@@ -10,10 +10,13 @@ import (
 	"github.com/webitel/webitel-go-kit/pkg/errors"
 
 	"github.com/webitel/im-contact-service/gen/go/api/v1"
+	grpc_srv "github.com/webitel/im-contact-service/infra/server/grpc"
 	"github.com/webitel/im-contact-service/internal/model"
 	"github.com/webitel/im-contact-service/internal/service"
 	"github.com/webitel/im-contact-service/internal/service/dto"
 )
+
+var _ impb.ContactsServer = &ContactService{}
 
 type ContactService struct {
 	impb.UnimplementedContactsServer
@@ -22,11 +25,16 @@ type ContactService struct {
 	handler service.Contacter
 }
 
-func NewContactService(handler service.Contacter) *ContactService {
-	return &ContactService{handler: handler}
+func NewContactService(handler service.Contacter, logger *slog.Logger) *ContactService {
+	return &ContactService{handler: handler, logger: logger}
 }
 
-func (receiver ContactService) MarshalContact(contact *model.Contact) (*impb.Contact, error) {
+func RegisterContactService(server *grpc_srv.Server, service *ContactService) error {
+	impb.RegisterContactsServer(server.Server, service)
+	return nil
+}
+
+func (c *ContactService) MarshalContact(contact *model.Contact) (*impb.Contact, error) {
 	return &impb.Contact{
 		Id:        contact.Id.String(),
 		IssId:     contact.IssuerId,

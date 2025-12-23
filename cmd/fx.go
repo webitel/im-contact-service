@@ -1,8 +1,10 @@
 package cmd
 
 import (
-	"github.com/webitel/im-contact-service/config"
 	"go.uber.org/fx"
+
+	"github.com/webitel/im-contact-service/config"
+	grpchandler "github.com/webitel/im-contact-service/internal/handler/grpc"
 )
 
 func NewApp(cfg *config.Config) *fx.App {
@@ -17,5 +19,6 @@ func NewApp(cfg *config.Config) *fx.App {
 		fx.Invoke(
 			StartGrpcServer,
 		),
+		grpchandler.Module,
 	)
 }
