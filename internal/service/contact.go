@@ -121,7 +121,7 @@ func (s *ContactService) validateCreate(input *model.Contact) error {
 	if input.Username == "" {
 		return errors.InvalidArgument("username is required")
 	}
-	if input.IssuerId == uuid.Nil {
+	if input.IssuerId == "" {
 		return errors.InvalidArgument("issuerId is required")
 	}
 

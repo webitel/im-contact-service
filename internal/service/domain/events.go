@@ -26,8 +26,8 @@ type ContactCreatedEvent struct {
 	Name          string    `json:"name"`
 	Username      string    `json:"username"`
 	Type          string    `json:"type"`
-	ApplicationID uuid.UUID `json:"application_id"`
-	IssuerID      uuid.UUID `json:"issuer_id"`
+	ApplicationID string    `json:"application_id"`
+	IssuerID      string    `json:"issuer_id"`
 	OccuredAt     time.Time `json:"occurred_at"`
 }
 
