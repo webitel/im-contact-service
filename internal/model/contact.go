@@ -1,12 +1,10 @@
 package model
 
-import "github.com/google/uuid"
-
 type Contact struct {
 	BaseModel
-	IssuerId      uuid.UUID   `json:"issuer_id"`
-	ApplicationId uuid.UUID   `json:"application_id"`
-	Type          ContactType `json:"type"`
+	IssuerId      string `json:"issuer_id"`
+	ApplicationId string `json:"application_id"`
+	Type          string `json:"type"`
 
 	Name     string            `json:"name"`
 	Username string            `json:"username"`

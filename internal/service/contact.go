@@ -4,10 +4,12 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+
+	"github.com/webitel/webitel-go-kit/pkg/errors"
+
 	"github.com/webitel/im-contact-service/internal/model"
 	"github.com/webitel/im-contact-service/internal/service/dto"
 	"github.com/webitel/im-contact-service/internal/store"
-	"github.com/webitel/webitel-go-kit/pkg/errors"
 )
 
 type Contacter interface {
