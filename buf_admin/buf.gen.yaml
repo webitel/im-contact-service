@@ -1,0 +1,13 @@
+version: v2
+plugins:
+  - remote: buf.build/protocolbuffers/go:v1.30.0
+    out: ../gen/go/admin_api
+    opt:
+      - paths=source_relative
+  - remote: buf.build/grpc/go:v1.3.0
+    out: ../gen/go/admin_api
+    opt:
+      - paths=source_relative
+
+inputs:
+  - directory: "/Users/volodiahunkalo/Downloads/development/protos/im/internal/admin"
