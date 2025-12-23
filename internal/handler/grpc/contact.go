@@ -11,7 +11,6 @@ import (
 	"github.com/webitel/webitel-go-kit/pkg/errors"
 
 	"github.com/webitel/im-contact-service/gen/go/api/v1"
-	grpc_srv "github.com/webitel/im-contact-service/infra/server/grpc"
 	"github.com/webitel/im-contact-service/internal/model"
 	"github.com/webitel/im-contact-service/internal/service"
 	"github.com/webitel/im-contact-service/internal/service/dto"
@@ -28,11 +27,6 @@ type ContactService struct {
 
 func NewContactService(handler service.Contacter, logger *slog.Logger) *ContactService {
 	return &ContactService{handler: handler, logger: logger}
-}
-
-func RegisterContactService(server *grpc_srv.Server, service *ContactService) error {
-	impb.RegisterContactsServer(server.Server, service)
-	return nil
 }
 
 func (c *ContactService) SearchContact(ctx context.Context, request *impb.SearchContactRequest) (*impb.ContactList, error) {
