@@ -4,13 +4,11 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-
-	"github.com/webitel/webitel-go-kit/pkg/errors"
-
-	"github.com/webitel/im-contact-service/internal/model"
-	"github.com/webitel/im-contact-service/internal/service/domain"
+	"github.com/webitel/im-contact-service/internal/domain/events"
+	"github.com/webitel/im-contact-service/internal/domain/model"
 	"github.com/webitel/im-contact-service/internal/service/dto"
 	"github.com/webitel/im-contact-service/internal/store"
+	"github.com/webitel/webitel-go-kit/pkg/errors"
 )
 
 // Contacter defines the primary API for managing contacts.
@@ -25,7 +23,7 @@ type Contacter interface {
 // EventPublisher defines the contract for publishing domain events.
 // Note: We removed the 'topic string' argument because the event knows its own topic.
 type EventPublisher interface {
-	Publish(ctx context.Context, event domain.DomainEvent) error
+	Publish(ctx context.Context, event events.Event) error
 }
 
 type ContactService struct {
@@ -60,7 +58,7 @@ func (s *ContactService) Create(ctx context.Context, input *model.Contact) (*mod
 		return nil, err
 	}
 
-	event := domain.NewContactCreatedEvent(out)
+	event := events.NewContactCreated(out)
 	if err := s.publisher.Publish(ctx, event); err != nil {
 		return out, err
 	}
@@ -79,7 +77,7 @@ func (s *ContactService) Update(ctx context.Context, input *dto.UpdateContactCom
 		return nil, err
 	}
 
-	event := domain.NewContactUpdatedEvent(out)
+	event := events.NewContactUpdated(out)
 	if err := s.publisher.Publish(ctx, event); err != nil {
 		return out, err
 	}
@@ -101,7 +99,7 @@ func (s *ContactService) Delete(ctx context.Context, input *dto.DeleteContactCom
 	}
 
 	// Event handles its own topic and timestamp logic.
-	return s.publisher.Publish(ctx, domain.NewContactDeletedEvent(input.Id))
+	return s.publisher.Publish(ctx, events.NewContactDeleted(input.Id))
 }
 
 // CanSend checks if a message can be sent to/from a contact.

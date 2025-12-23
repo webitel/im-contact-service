@@ -9,9 +9,9 @@ import (
 
 	"github.com/webitel/webitel-go-kit/pkg/errors"
 
-	"github.com/webitel/im-contact-service/gen/go/api/v1"
+	impb "github.com/webitel/im-contact-service/gen/go/api/v1"
+	"github.com/webitel/im-contact-service/internal/domain/model"
 	"github.com/webitel/im-contact-service/internal/handler/grpc/mapper"
-	"github.com/webitel/im-contact-service/internal/model"
 	"github.com/webitel/im-contact-service/internal/service"
 	"github.com/webitel/im-contact-service/internal/service/dto"
 )
