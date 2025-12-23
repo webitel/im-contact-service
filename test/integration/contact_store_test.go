@@ -35,8 +35,8 @@ func newContact(domain int, opts ...func(*model.Contact)) *model.Contact {
 		BaseModel: model.BaseModel{
 			DomainId: domain,
 		},
-		IssuerId:      uuid.New(),
-		ApplicationId: uuid.New(),
+		IssuerId:      uuid.New().String(),
+		ApplicationId: uuid.New().String(),
 		Type:          "webitel",
 		Name:          "Antonio Banderas",
 		Username:      "a.banderas@webitel.com",
@@ -217,7 +217,7 @@ func (suite *ContactStoreTestSuite) TestSearch_ByApplication() {
 	appID := uuid.New()
 
 	_, err := suite.repo.Create(suite.ctx, newContact(1, func(c *model.Contact) {
-		c.ApplicationId = appID
+		c.ApplicationId = appID.String()
 	}))
 	suite.Require().NoError(err)
 
@@ -239,7 +239,7 @@ func (suite *ContactStoreTestSuite) TestSearch_ByIssuer() {
 	issuer := uuid.New()
 
 	_, err := suite.repo.Create(suite.ctx, newContact(1, func(c *model.Contact) {
-		c.IssuerId = issuer
+		c.IssuerId = issuer.String()
 	}))
 	suite.Require().NoError(err)
 
