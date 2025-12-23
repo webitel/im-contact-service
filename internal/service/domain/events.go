@@ -28,7 +28,7 @@ type ContactCreatedEvent struct {
 	Type          model.ContactType `json:"type"`
 	ApplicationID uuid.UUID         `json:"application_id"`
 	IssuerID      uuid.UUID         `json:"issuer_id"`
-	Timestamp     uint64            `json:"occurred_at"` // Renamed field to avoid conflict with method
+	Timestamp     uint64            `json:"occurred_at"`
 }
 
 func (e *ContactCreatedEvent) Topic() string       { return ContactCreatedTopic }
