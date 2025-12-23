@@ -4,7 +4,7 @@
 // - protoc             (unknown)
 // source: v1/contact.proto
 
-package impb
+package contactv1
 
 import (
 	context "context"

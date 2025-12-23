@@ -6,6 +6,9 @@ import (
 	"os"
 	"strconv"
 
+	"buf.build/go/protovalidate"
+	protovalidate_middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/protovalidate"
+	"github.com/webitel/im-contact-service/infra/server/grpc/interceptors"
 	"google.golang.org/grpc"
 )
 
@@ -20,8 +23,16 @@ type Server struct {
 
 // New provides a new gRPC server.
 func New(addr string, log *slog.Logger) (*Server, error) {
+	validator, err := protovalidate.New()
+	if err != nil {
+		return nil, err
+	}
 
-	s := grpc.NewServer(grpc.ChainUnaryInterceptor())
+	s := grpc.NewServer(grpc.ChainUnaryInterceptor(
+		interceptors.UnaryErrorInterceptor,
+		interceptors.NewUnaryAuthInterceptor(),
+		protovalidate_middleware.UnaryServerInterceptor(validator),
+	))
 
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -72,7 +83,6 @@ func (s *Server) Port() int {
 
 func publicAddr() string {
 	interfaces, err := net.Interfaces()
-
 	if err != nil {
 		return ""
 	}
