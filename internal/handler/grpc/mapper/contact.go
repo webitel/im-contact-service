@@ -6,6 +6,9 @@ import (
 )
 
 func MarshalContact(contact *model.Contact) (*impb.Contact, error) {
+	if contact == nil {
+		return nil, nil
+	}
 	return &impb.Contact{
 		Id:        contact.Id.String(),
 		IssId:     contact.IssuerId,
