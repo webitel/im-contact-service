@@ -14,7 +14,7 @@ type Contacter interface {
 	Search(ctx context.Context, filter *dto.ContactSearchFilter) ([]*model.Contact, error)
 	Create(ctx context.Context, input *model.Contact) (*model.Contact, error)
 	Update(ctx context.Context, input *dto.UpdateContactCommand) (*model.Contact, error)
-	Delete(ctx context.Context, id uuid.UUID) error
+	Delete(ctx context.Context, command *dto.DeleteContactCommand) error
 }
 
 type ContactService struct {
@@ -53,10 +53,6 @@ func (s *ContactService) Create(ctx context.Context, input *model.Contact) (*mod
 		return nil, errors.InvalidArgument("applicationId is required")
 	}
 
-	if !isValidContactType(input.Type) {
-		return nil, errors.InvalidArgument("type is invalid")
-	}
-
 	out, err := s.store.Create(ctx, input)
 	if err != nil {
 		return nil, err
@@ -74,10 +70,6 @@ func (s *ContactService) Update(ctx context.Context, input *dto.UpdateContactCom
 		return nil, errors.InvalidArgument("id is required")
 	}
 
-	if input.Username == "" {
-		return nil, errors.InvalidArgument("username is required")
-	}
-
 	out, err := s.store.Update(ctx, input)
 	if err != nil {
 		return nil, err
@@ -86,24 +78,15 @@ func (s *ContactService) Update(ctx context.Context, input *dto.UpdateContactCom
 	return out, nil
 }
 
-func (s *ContactService) Delete(ctx context.Context, id uuid.UUID) error {
-	if id == uuid.Nil {
+func (s *ContactService) Delete(ctx context.Context, command *dto.DeleteContactCommand) error {
+	if command.Id == uuid.Nil {
 		return errors.InvalidArgument("id is required")
 	}
 
-	err := s.store.Delete(ctx, id)
+	err := s.store.Delete(ctx, command)
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func isValidContactType(t model.ContactType) bool {
-	switch t {
-	case model.Webitel, model.User, model.Bot:
-		return true
-	default:
-		return false
-	}
 }
