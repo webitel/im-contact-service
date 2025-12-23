@@ -14,9 +14,7 @@ import (
 	"github.com/webitel/im-contact-service/internal/store"
 )
 
-var (
-	_ store.ContactStore = (*contactStore)(nil)
-)
+var _ store.ContactStore = (*contactStore)(nil)
 
 type contactStore struct {
 	db *pg.PgxDB
