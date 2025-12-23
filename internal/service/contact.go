@@ -16,14 +16,7 @@ type Contacter interface {
 	Search(ctx context.Context, filter *dto.ContactSearchFilter) ([]*model.Contact, error)
 	Create(ctx context.Context, input *model.Contact) (*model.Contact, error)
 	Update(ctx context.Context, input *dto.UpdateContactCommand) (*model.Contact, error)
-	Delete(ctx context.Context, id uuid.UUID) error
-	CanSend(ctx context.Context, query *dto.CanSendQuery) (bool, error)
-}
-
-// EventPublisher defines the contract for publishing domain events.
-// Note: We removed the 'topic string' argument because the event knows its own topic.
-type EventPublisher interface {
-	Publish(ctx context.Context, event domain.DomainEvent) error
+	Delete(ctx context.Context, command *dto.DeleteContactCommand) error
 }
 
 type ContactService struct {
@@ -49,8 +42,20 @@ func (s *ContactService) Search(ctx context.Context, filter *dto.ContactSearchFi
 
 // Create persists a new contact and publishes a ContactCreatedEvent.
 func (s *ContactService) Create(ctx context.Context, input *model.Contact) (*model.Contact, error) {
-	if err := s.validateCreate(input); err != nil {
-		return nil, err
+	if input == nil {
+		return nil, errors.InvalidArgument("input is nil")
+	}
+
+	if input.Username == "" {
+		return nil, errors.InvalidArgument("username is required")
+	}
+
+	if input.IssuerId == uuid.Nil {
+		return nil, errors.InvalidArgument("issuerId is required")
+	}
+
+	if input.ApplicationId == uuid.Nil {
+		return nil, errors.InvalidArgument("applicationId is required")
 	}
 
 	out, err := s.store.Create(ctx, input)
@@ -68,8 +73,12 @@ func (s *ContactService) Create(ctx context.Context, input *model.Contact) (*mod
 
 // Update modifies an existing contact and publishes a ContactUpdatedEvent.
 func (s *ContactService) Update(ctx context.Context, input *dto.UpdateContactCommand) (*model.Contact, error) {
-	if input == nil || input.Id == uuid.Nil {
-		return nil, errors.InvalidArgument("input with a valid ID is required")
+	if input == nil {
+		return nil, errors.InvalidArgument("input is nil")
+	}
+
+	if input.Id == uuid.Nil {
+		return nil, errors.InvalidArgument("id is required")
 	}
 
 	out, err := s.store.Update(ctx, input)
@@ -84,45 +93,16 @@ func (s *ContactService) Update(ctx context.Context, input *dto.UpdateContactCom
 	return out, nil
 }
 
-// Delete removes a contact and publishes a ContactDeletedEvent.
-func (s *ContactService) Delete(ctx context.Context, id uuid.UUID) error {
-	if id == uuid.Nil {
+func (s *ContactService) Delete(ctx context.Context, command *dto.DeleteContactCommand) error {
+	if command.Id == uuid.Nil {
 		return errors.InvalidArgument("id is required")
 	}
 
-	if err := s.store.Delete(ctx, id); err != nil {
+	err := s.store.Delete(ctx, command)
+	if err != nil {
 		return err
 	}
 
 	// Event handles its own topic and timestamp logic.
-	return s.publisher.Publish(ctx, domain.NewContactDeletedEvent(id))
-}
-
-// CanSend checks if a message can be sent to/from a contact.
-func (s *ContactService) CanSend(ctx context.Context, query *dto.CanSendQuery) (bool, error) {
-	if query == nil {
-		return false, errors.InvalidArgument("query is required")
-	}
-
-	return s.store.CanSend(ctx, query)
-}
-
-// validateCreate performs business rules validation for new contacts.
-func (s *ContactService) validateCreate(input *model.Contact) error {
-	if input == nil {
-		return errors.InvalidArgument("input is nil")
-	}
-	if input.Username == "" {
-		return errors.InvalidArgument("username is required")
-	}
-	if input.IssuerId == uuid.Nil {
-		return errors.InvalidArgument("issuerId is required")
-	}
-
-	switch input.Type {
-	case model.Webitel, model.User, model.Bot:
-		return nil
-	default:
-		return errors.InvalidArgument("invalid contact type")
-	}
+	return s.publisher.Publish(ctx, domain.NewContactDeletedEvent(command.Id))
 }
