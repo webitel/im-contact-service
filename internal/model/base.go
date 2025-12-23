@@ -7,9 +7,11 @@ import (
 )
 
 type BaseModel struct {
-	Id       uuid.UUID `json:"id"`
-	DomainId int       `json:"domain_id"`
+	Id       uuid.UUID `json:"id" db:"id"`
+	DomainId int       `json:"domain_id" db:"domain_id"`
 
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedBy int       `json:"created_by" db:"created_by"`
+	UpdatedBy int       `json:"updated_by" db:"updated_by"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }

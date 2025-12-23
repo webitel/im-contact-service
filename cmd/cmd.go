@@ -26,6 +26,7 @@ func Run() error {
 		Usage: "Microservice for Webitel [I]nstant [M]essaging contacts managing.",
 		Commands: []*cli.Command{
 			serverCmd(),
+			migrateCommand(),
 		},
 	}
 

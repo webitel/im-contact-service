@@ -15,6 +15,7 @@ func NewApp(cfg *config.Config) *fx.App {
 			ProvideGrpcServer,
 			ProvideSD,
 			ProvidePubSub,
+			ProvideNewDBConnection,
 		),
 		fx.Invoke(
 			StartGrpcServer,

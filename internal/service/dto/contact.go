@@ -1,29 +1,39 @@
 package dto
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+)
 
 type (
 	ContactSearchFilter struct {
-		Page    int32    `json:"page"`
-		Size    int32    `json:"size"`
-		Q       string   `json:"q"`
-		Sort    string   `json:"sort"`
-		Fields  []string `json:"fields"`
-		Apps    []string `json:"apps"`
-		Issuers []string `json:"issuers"`
-		Types   []string `json:"types"`
+		DomainId int         `json:"domain_id"`
+		Ids      []uuid.UUID `json:"ids"`
+		Page     int32       `json:"page"`
+		Size     int32       `json:"size"`
+		Q        *string     `json:"q"`
+		Sort     string      `json:"sort"`
+		Fields   []string    `json:"fields"`
+		Apps     []string    `json:"apps"`
+		Issuers  []string    `json:"issuers"`
+		Types    []string    `json:"types"`
 	}
 
 	UpdateContactCommand struct {
-		Id       uuid.UUID `json:"id"`
-		Name     string    `json:"name"`
-		Username string    `json:"username"`
-		Metadata any       `json:"metadata"`
+		Id       uuid.UUID         `json:"id"`
+		DomainId int               `json:"domain_id"`
+		Name     *string           `json:"name"`
+		Username *string           `json:"username"`
+		Metadata map[string]string `json:"metadata"`
 	}
 
 	CanSendQuery struct {
-		From string
-		To   string
+		From string `json:"from"`
+		To   string `json:"to"`
+	}
+
+	DeleteContactCommand struct {
+		DomainId int       `json:"domain_id"`
+		Id       uuid.UUID `json:"id"`
 	}
 
 	CreateContactCommand struct {
