@@ -1,4 +1,4 @@
-package cmd
+package server
 
 import (
 	"context"
@@ -6,35 +6,12 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/urfave/cli/v2"
 	"github.com/webitel/im-contact-service/config"
-	"github.com/webitel/im-contact-service/internal/domain/model"
 )
 
-var (
-	version        = "0.0.0"
-	commit         = "hash"
-	commitDate     = time.Now().String()
-	branch         = "branch"
-	buildTimestamp = ""
-)
-
-func Run() error {
-	app := &cli.App{
-		Name:  model.ServiceName,
-		Usage: "Microservice for Webitel [I]nstant [M]essaging contacts managing.",
-		Commands: []*cli.Command{
-			serverCmd(),
-			migrateCommand(),
-		},
-	}
-
-	return app.Run(os.Args)
-}
-
-func serverCmd() *cli.Command {
+func CMD() *cli.Command {
 	return &cli.Command{
 		Name:    "server",
 		Aliases: []string{"s"},
@@ -61,6 +38,7 @@ func serverCmd() *cli.Command {
 			<-stop
 
 			slog.Info("Shutting down...")
+
 			return app.Stop(context.Background())
 		},
 	}

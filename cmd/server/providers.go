@@ -1,4 +1,4 @@
-package cmd
+package server
 
 import (
 	"context"
@@ -23,7 +23,6 @@ import (
 	"github.com/webitel/im-contact-service/infra/pubsub"
 	"github.com/webitel/im-contact-service/infra/pubsub/factory"
 	"github.com/webitel/im-contact-service/infra/pubsub/factory/amqp"
-	grpc_srv "github.com/webitel/im-contact-service/infra/server/grpc"
 	"github.com/webitel/im-contact-service/internal/domain/model"
 
 	_ "github.com/webitel/webitel-go-kit/infra/discovery/consul"
@@ -85,7 +84,7 @@ func ProvideLogger(cfg *config.Config, lc fx.Lifecycle) (*slog.Logger, error) {
 	if logSettings.Otel {
 		service := resource.NewSchemaless(
 			semconv.ServiceName(model.ServiceName),
-			semconv.ServiceVersion(version),
+			semconv.ServiceVersion(model.Version),
 			semconv.ServiceInstanceID(cfg.Service.Id),
 			semconv.ServiceNamespace(model.ServiceNamespace),
 		)
@@ -182,25 +181,6 @@ func (h *multiHandler) WithGroup(name string) slog.Handler {
 	return &multiHandler{handlers: newHandlers}
 }
 
-func ProvideGrpcServer(cfg *config.Config, l *slog.Logger, lc fx.Lifecycle) (*grpc_srv.Server, error) {
-	s, err := grpc_srv.New(cfg.Service.Address, l)
-	if err != nil {
-		return nil, err
-	}
-
-	lc.Append(fx.Hook{
-		OnStop: func(ctx context.Context) error {
-			if err := s.Shutdown(); err != nil {
-				l.Error("error stopping grpc server", "err", err.Error())
-				return err
-			}
-			return nil
-		},
-	})
-
-	return s, nil
-}
-
 func ProvideNewDBConnection(cfg *config.Config, l *slog.Logger, lc fx.Lifecycle) (*pg.PgxDB, error) {
 	db, err := pg.New(context.Background(), l, cfg.Postgres.DSN)
 	if err != nil {
@@ -232,13 +212,13 @@ func ProvideSD(cfg *config.Config, log *slog.Logger, lc fx.Lifecycle) (discovery
 	si := new(discovery.ServiceInstance)
 	{
 		si.Id = cfg.Service.Id
-		si.Name = "im-contact-service-name"
-		si.Version = version
+		si.Name = model.ServiceName
+		si.Version = model.Version
 		si.Metadata = map[string]string{
-			"commit":         commit,
-			"commitDate":     commitDate,
-			"branch":         branch,
-			"buildTimestamp": buildTimestamp,
+			"commit":         model.Commit,
+			"commitDate":     model.CommitDate,
+			"branch":         model.Branch,
+			"buildTimestamp": model.BuildTimestamp,
 		}
 		si.Endpoints = []string{(&url.URL{Scheme: "grpc", Host: cfg.Service.Address}).String()}
 	}

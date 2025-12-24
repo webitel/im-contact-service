@@ -1,4 +1,4 @@
-package cmd
+package migrate
 
 import (
 	"context"
@@ -10,12 +10,14 @@ import (
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/database"
 	"github.com/urfave/cli/v2"
+	"go.uber.org/fx"
+
+	"github.com/webitel/im-contact-service/cmd/server"
 	"github.com/webitel/im-contact-service/config"
 	"github.com/webitel/im-contact-service/migrations"
-	"go.uber.org/fx"
 )
 
-func migrateCommand() *cli.Command {
+func CMD() *cli.Command {
 	return &cli.Command{
 		Name:    "migrate",
 		Aliases: []string{"m"},
@@ -29,7 +31,7 @@ func migrateCommand() *cli.Command {
 			app := fx.New(
 				fx.Provide(
 					func() *config.Config { return cfg },
-					ProvideLogger,
+					server.ProvideLogger,
 				),
 				fx.Invoke(func(cfg *config.Config, log *slog.Logger, lc fx.Lifecycle) error {
 					m := NewMigrator(cfg, log)

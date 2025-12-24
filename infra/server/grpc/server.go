@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"fmt"
 	"log/slog"
 	"net"
 	"os"
@@ -9,18 +11,55 @@ import (
 	"buf.build/go/protovalidate"
 	validatemiddleware "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/protovalidate"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.uber.org/fx"
 	"google.golang.org/grpc"
 
-	"github.com/webitel/im-contact-service/infra/server/grpc/interceptors"
 	intrcp "github.com/webitel/webitel-go-kit/pkg/interceptors"
+
+	"github.com/webitel/im-contact-service/config"
+	"github.com/webitel/im-contact-service/infra/server/grpc/interceptors"
+)
+
+var Module = fx.Module("grpc_server",
+	fx.Provide(func(conf *config.Config, logger *slog.Logger, lc fx.Lifecycle) (*Server, error) {
+		srv, err := New(conf.Service.Address, logger)
+		if err != nil {
+			return nil, err
+		}
+
+		lc.Append(fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				go func() {
+					logger.Info(fmt.Sprintf("listen grpc %s:%d", srv.Host(), srv.Port()))
+					if err := srv.Listen(); err != nil {
+						logger.Error("grpc server error", "err", err)
+					}
+				}()
+
+				return nil
+			},
+			OnStop: func(ctx context.Context) error {
+				if err := srv.Shutdown(); err != nil {
+					logger.Error("error stopping grpc server", "err", err.Error())
+
+					return err
+				}
+
+				return nil
+			},
+		})
+
+		return srv, nil
+	}),
 )
 
 type Server struct {
-	Addr string
-	host string
-	port int
-	log  *slog.Logger
 	*grpc.Server
+
+	Addr     string
+	host     string
+	port     int
+	log      *slog.Logger
 	listener net.Listener
 }
 
@@ -74,6 +113,7 @@ func (s *Server) Shutdown() error {
 	s.log.Debug("receive shutdown grpc")
 	err := s.listener.Close()
 	s.Server.GracefulStop()
+
 	return err
 }
 
@@ -81,6 +121,7 @@ func (s *Server) Host() string {
 	if e, ok := os.LookupEnv("PROXY_GRPC_HOST"); ok {
 		return e
 	}
+
 	return s.host
 }
 
@@ -116,6 +157,7 @@ func publicAddr() string {
 			// process IP address
 		}
 	}
+
 	return ""
 }
 
@@ -123,5 +165,6 @@ func isPublicIP(IP net.IP) bool {
 	if IP.IsLoopback() || IP.IsLinkLocalMulticast() || IP.IsLinkLocalUnicast() {
 		return false
 	}
+
 	return true
 }

@@ -9,7 +9,8 @@ import (
 	"github.com/go-faker/faker/v4"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
-	"github.com/webitel/im-contact-service/cmd"
+
+	"github.com/webitel/im-contact-service/cmd/migrate"
 	"github.com/webitel/im-contact-service/config"
 	"github.com/webitel/im-contact-service/infra/db/pg"
 	"github.com/webitel/im-contact-service/internal/domain/model"
@@ -21,6 +22,7 @@ import (
 
 type ContactStoreTestSuite struct {
 	suite.Suite
+
 	postgresContainer *testhelpers.PostgresContainer
 	repo              store.ContactStore
 	ctx               context.Context
@@ -61,7 +63,7 @@ func (suite *ContactStoreTestSuite) SetupSuite() {
 
 	suite.postgresContainer = pgContainer
 
-	mig := cmd.NewMigrator(&config.Config{Postgres: config.PostgresConfig{DSN: pgContainer.ConnectionString}}, slog.Default())
+	mig := migrate.NewMigrator(&config.Config{Postgres: config.PostgresConfig{DSN: pgContainer.ConnectionString}}, slog.Default())
 	if err := mig.Run(suite.ctx); err != nil {
 		log.Fatal(err)
 	}

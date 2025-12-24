@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
@@ -75,16 +76,18 @@ func LoadConfig() (*Config, error) {
 		}
 
 		viper.OnConfigChange(func(e fsnotify.Event) {
-			log.Printf("Config file changed: %s", e.Name)
+			slog.Warn("Config file changed: %s", e.Name)
 
 			newCfg := &Config{}
 			if err := viper.Unmarshal(newCfg); err != nil {
-				log.Printf("Reload error: unable to decode: %v", err)
+				slog.Warn("Reload error: unable to decode: %v", err)
+
 				return
 			}
 
 			if err := newCfg.validate(); err != nil {
-				log.Printf("Reload error: invalid config: %v", err)
+				slog.Warn("Reload error: invalid config: %v", err)
+
 				return
 			}
 
@@ -111,7 +114,6 @@ func defineFlags() {
 
 	pflag.String("service.id", "", "Service ID")
 	pflag.String("service.addr", "localhost:8080", "Service address")
-	pflag.String("service.secret", "", "Service secret key")
 
 	pflag.String("log.level", "info", "Log level")
 	pflag.Bool("log.json", false, "Log in JSON format")
@@ -125,11 +127,9 @@ func defineFlags() {
 
 func (c *Config) validate() error {
 	if c.Service.Id == "" {
-		return fmt.Errorf("config: service.id is required (use --service.id or ID env)")
+		return fmt.Errorf("config: service.id is required (use --service.id or SERVICE_ID env)")
 	}
-	if c.Service.SecretKey == "" {
-		return fmt.Errorf("config: service.secret is required (use --service.secret or SERVICE_SECRET env)")
-	}
+
 	if c.Service.Address == "" {
 		return fmt.Errorf("config: service.addr is required")
 	}
