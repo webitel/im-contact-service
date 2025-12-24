@@ -38,6 +38,7 @@ type (
 
 	CreateContactCommand struct {
 		IssuerId      uuid.UUID         `json:"issuer_id"`
+		SubjectId     string            `json:"subject_id"`
 		ApplicationId uuid.UUID         `json:"application_id"`
 		Type          string            `json:"type"`
 		Name          string            `json:"name"`

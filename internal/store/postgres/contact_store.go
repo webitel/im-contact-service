@@ -30,22 +30,21 @@ func (c *contactStore) Create(ctx context.Context, contact *model.Contact) (*mod
 	var (
 		query = `
 			insert into im_contact.contact(
-				domain_id, created_by, updated_by, issuer_id, 
+				domain_id, issuer_id, subject_id,
 				application_id, type, name, username, metadata
 			)
 			values(
-				@domain_id, @created_by, @updated_by, @issuer_id,
+				@domain_id, @issuer_id, @subject_id,
 				@application_id, @type, @name, @username, @metadata
 			)
 			returning
-				id, domain_id, created_at, updated_at, created_by, updated_by,
+				id, domain_id, created_at, updated_at, subject_id,
 				issuer_id, application_id, type, name, username, metadata
 		`
 		args = pgx.NamedArgs{
 			"domain_id":      contact.DomainId,
-			"created_by":     contact.CreatedBy,
-			"updated_by":     contact.UpdatedBy,
 			"issuer_id":      contact.IssuerId,
+			"subject_id":     contact.SubjectId,
 			"application_id": contact.ApplicationId,
 			"type":           contact.Type,
 			"name":           contact.Name,
@@ -140,7 +139,7 @@ func (c *contactStore) Update(ctx context.Context, updater *dto.UpdateContactCom
 				updated_at = now()
 			where domain_id = @domain_id
 				and id = @id
-			returning id, domain_id, created_at, updated_at, created_by, updated_by,
+			returning id, domain_id, created_at, updated_at, subject_id,
 				issuer_id, application_id, type, name, username, metadata
 		`
 		args = pgx.NamedArgs{
