@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/webitel/im-contact-service/infra/server/grpc/interceptors"
+	intrcp "github.com/webitel/webitel-go-kit/pkg/interceptors"
 )
 
 type Server struct {
@@ -33,9 +34,9 @@ func New(addr string, log *slog.Logger) (*Server, error) {
 	s := grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(
-			interceptors.UnaryErrorInterceptor,
+			intrcp.UnaryServerErrorInterceptor(),
 			interceptors.NewUnaryAuthInterceptor(),
-			interceptors.RecoveryUnaryServerInterceptor(log),
+			intrcp.RecoveryUnaryServerInterceptor(log),
 			validatemiddleware.UnaryServerInterceptor(validator),
 		),
 	)
