@@ -37,6 +37,7 @@ func newContact(domain int, opts ...func(*model.Contact)) *model.Contact {
 		},
 		IssuerId:      uuid.New().String(),
 		ApplicationId: uuid.New().String(),
+		SubjectId:     uuid.New().String(),
 		Type:          "webitel",
 		Name:          "Antonio Banderas",
 		Username:      "a.banderas@webitel.com",
@@ -124,10 +125,10 @@ func (suite *ContactStoreTestSuite) TestCreate_MissingUsername() {
 	suite.Error(err)
 }
 
-func (suite *ContactStoreTestSuite) TestCreate_DuplicateUsername() {
+func (suite *ContactStoreTestSuite) TestCreate_DuplicateSubject() {
 	c1 := newContact(1)
 	c2 := newContact(1, func(c *model.Contact) {
-		c.Username = c1.Username
+		c.SubjectId = c1.SubjectId
 	}, func(c *model.Contact) {
 		c.IssuerId = c1.IssuerId
 	})
