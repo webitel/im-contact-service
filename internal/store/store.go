@@ -8,12 +8,12 @@ import (
 )
 
 type (
-	Store interface{}
-
+	Store        interface{}
 	ContactStore interface {
 		Search(ctx context.Context, filter *dto.ContactSearchFilter) ([]*model.Contact, error)
 		Create(ctx context.Context, contact *model.Contact) (*model.Contact, error)
 		Update(ctx context.Context, updater *dto.UpdateContactCommand) (*model.Contact, error)
 		Delete(ctx context.Context, command *dto.DeleteContactCommand) error
+		ClearByDomain(ctx context.Context, domainId int) error
 	}
 )

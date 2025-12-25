@@ -157,3 +157,20 @@ func (c *contactStore) Update(ctx context.Context, updater *dto.UpdateContactCom
 	}
 	return &result, nil
 }
+
+func (c *contactStore) ClearByDomain(ctx context.Context, domainId int) error {
+	var (
+		query = `
+			delete from im_contact.contact
+			where domain_id = @domain_id
+		`
+		args = pgx.NamedArgs{
+			"domain_id": domainId,
+		}
+	)
+
+	if _, err := c.db.Master().Exec(ctx, query, args); err != nil {
+		return fmt.Errorf("contactStore.ClearByDomain (id = %d): %w", domainId, err)
+	}
+	return nil
+}

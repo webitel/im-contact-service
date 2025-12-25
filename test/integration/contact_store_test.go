@@ -356,11 +356,33 @@ func (suite *ContactStoreTestSuite) TestDelete_HappyPath() {
 	suite.Require().NoError(err)
 
 	res, _ := suite.repo.Search(suite.ctx, &dto.ContactSearchFilter{
-		Page: 1,
-		Size: 10,
+		Page:     1,
+		Size:     10,
+		DomainId: 1,
 	})
 
 	suite.Empty(res)
+}
+
+func (suite *ContactStoreTestSuite) TestClearByDomain() {
+	for range 10 {
+		suite.repo.Create(suite.ctx, newContact(1))
+	}
+
+	for range 5 {
+		suite.repo.Create(suite.ctx, newContact(2))
+	}
+
+	err := suite.repo.ClearByDomain(suite.ctx, 1)
+	suite.Require().NoError(err)
+
+	res, _ := suite.repo.Search(suite.ctx, &dto.ContactSearchFilter{
+		Page:     1,
+		Size:     6,
+		DomainId: 2,
+	})
+
+	suite.Len(res, 5)
 }
 
 //#endregion
