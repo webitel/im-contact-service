@@ -6,10 +6,12 @@ import (
 	"github.com/webitel/im-contact-service/config"
 	grpcsrv "github.com/webitel/im-contact-service/infra/server/grpc"
 	grpchandler "github.com/webitel/im-contact-service/internal/handler/grpc"
+	"github.com/webitel/im-contact-service/internal/service"
+	"github.com/webitel/im-contact-service/internal/store/postgres"
 )
 
-func NewApp(cfg *config.Config) *fx.App {
-	return fx.New(
+func MainModule(cfg *config.Config) fx.Option {
+	return fx.Options(
 		fx.Provide(
 			func() *config.Config { return cfg },
 			ProvideLogger,
@@ -17,7 +19,13 @@ func NewApp(cfg *config.Config) *fx.App {
 			ProvidePubSub,
 			ProvideNewDBConnection,
 		),
+		postgres.Module,
+		service.Module,
 		grpcsrv.Module,
 		grpchandler.Module,
 	)
+}
+
+func NewApp(cfg *config.Config) *fx.App {
+	return fx.New(MainModule(cfg))
 }

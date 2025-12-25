@@ -22,11 +22,19 @@ func CMD() *cli.Command {
 		Name:    "migrate",
 		Aliases: []string{"m"},
 		Usage:   "Execute database migrations",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:  "config_file",
+				Usage: "Path to the configuration file",
+			},
+		},
 		Action: func(c *cli.Context) error {
 			cfg, err := config.LoadConfig()
 			if err != nil {
 				return err
 			}
+
+			var migrationErr error
 
 			app := fx.New(
 				fx.Provide(
@@ -34,17 +42,27 @@ func CMD() *cli.Command {
 					server.ProvideLogger,
 				),
 				fx.Invoke(func(cfg *config.Config, log *slog.Logger, lc fx.Lifecycle) error {
-					m := NewMigrator(cfg, log)
-					if err := m.Run(c.Context); err != nil {
-						return err
-					}
-
+					lc.Append(fx.Hook{
+						OnStart: func(ctx context.Context) error {
+							m := NewMigrator(cfg, log)
+							migrationErr = m.Run(ctx)
+							return migrationErr
+						},
+					})
 					return nil
 				}),
 				fx.NopLogger,
 			)
 
-			return app.Start(c.Context)
+			if err := app.Start(c.Context); err != nil {
+				return err
+			}
+
+			if err := app.Stop(c.Context); err != nil {
+				return err
+			}
+
+			return migrationErr
 		},
 	}
 }
