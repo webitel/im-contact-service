@@ -16,6 +16,6 @@ var Module = fx.Module("service",
 			}
 			return pubsub.NewEventDispatcher(wmPub), nil
 		},
-		NewContactService,
+		fx.Annotate(NewContactService, fx.As(new(Contacter))),
 	),
 )
