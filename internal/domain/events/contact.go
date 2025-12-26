@@ -23,6 +23,8 @@ type ContactCreated struct {
 	IssuerID      string    `json:"issuer_id"`
 }
 
+var _ Event = (*ContactCreated)(nil)
+
 func NewContactCreated(m *model.Contact) *ContactCreated {
 	return &ContactCreated{
 		Base: Base{
@@ -47,6 +49,8 @@ type ContactUpdated struct {
 	Type      string    `json:"type"`
 }
 
+var _ Event = (*ContactUpdated)(nil)
+
 func NewContactUpdated(m *model.Contact) *ContactUpdated {
 	return &ContactUpdated{
 		Base: Base{
@@ -65,6 +69,8 @@ type ContactDeleted struct {
 	Base
 	ContactID uuid.UUID `json:"contact_id"`
 }
+
+var _ Event = (*ContactDeleted)(nil)
 
 func NewContactDeleted(id uuid.UUID) *ContactDeleted {
 	return &ContactDeleted{

@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/webitel/im-contact-service/internal/domain/events"
 	"github.com/webitel/im-contact-service/internal/domain/model"
+	"github.com/webitel/im-contact-service/internal/handler/amqp"
 	"github.com/webitel/im-contact-service/internal/service/dto"
 	"github.com/webitel/im-contact-service/internal/store"
 	"github.com/webitel/webitel-go-kit/pkg/errors"
@@ -19,6 +20,11 @@ type Contacter interface {
 	Delete(ctx context.Context, input *dto.DeleteContactCommand) error
 	CanSend(ctx context.Context, query *dto.CanSendQuery) (bool, error)
 }
+
+var (
+	_ Contacter            = &ContactService{}
+	_ amqp.EventSubscriber = &ContactService{}
+)
 
 // EventPublisher defines the contract for publishing domain events.
 // Note: We removed the 'topic string' argument because the event knows its own topic.
@@ -52,6 +58,12 @@ func (s *ContactService) Create(ctx context.Context, input *model.Contact) (*mod
 	if err := s.validateCreate(input); err != nil {
 		return nil, err
 	}
+
+	// TODO
+	// appClient.ValidateApplicationAccess(ctx, input.ApplicationId, input.IssuerId)
+
+	// TODO
+	// issuer + subject uniqueness check ; if exists -> update instead of create
 
 	out, err := s.store.Create(ctx, input)
 	if err != nil {
@@ -110,6 +122,16 @@ func (s *ContactService) CanSend(ctx context.Context, query *dto.CanSendQuery) (
 
 	// FIXME mocked for now, implement actual logic later
 	return false, nil
+}
+
+func (s *ContactService) DeleteByDomain(ctx context.Context, id uuid.UUID) error {
+	// FIXME implement actual deletion logic
+
+	// err := s.store.DeleteByApplication(ctx, appId)
+	// if err != nil {
+	// 	return err
+	// }
+	return nil
 }
 
 // validateCreate performs business rules validation for new contacts.

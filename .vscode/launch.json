@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "im-contact-service",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/main.go",
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/config/config.env", 
+      "args": [
+        "server",
+        "--config_file=${workspaceFolder}/config/config.yml"
+      ],
+      "console": "integratedTerminal",
+      "showLog": true
+    }
+  ]
+}
