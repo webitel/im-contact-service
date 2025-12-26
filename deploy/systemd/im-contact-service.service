@@ -1,0 +1,32 @@
+[Unit]
+Description=Webitel IM Contact
+After=network.target consul.service rabbitmq-server.service postgresql.service
+
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=webitel
+Group=webitel
+
+Restart=on-failure
+RestartSec=5
+
+EnvironmentFile=/etc/default/webitel-im-contact.env
+ExecStart=/usr/local/bin/webitel-im-contact server
+
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStartSec=0
+TimeoutStopSec=30
+
+LimitNOFILE=64000
+LimitNPROC=4096
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=webitel-im-contact
+
+[Install]
+WantedBy=multi-user.target
