@@ -1,8 +1,9 @@
 package service
 
 import (
-	"github.com/webitel/im-contact-service/internal/adapter/pubsub"
 	"go.uber.org/fx"
+
+	"github.com/webitel/im-contact-service/internal/adapter/pubsub"
 )
 
 var Module = fx.Module("service",
@@ -16,6 +17,9 @@ var Module = fx.Module("service",
 			}
 			return pubsub.NewEventDispatcher(wmPub), nil
 		},
-		NewContactService,
+		fx.Annotate(
+			NewContactService,
+			fx.As(new(Contacter)),
+		),
 	),
 )

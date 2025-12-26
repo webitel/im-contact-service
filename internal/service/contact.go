@@ -32,7 +32,7 @@ type ContactService struct {
 }
 
 // NewContactService creates a new ContactService instance.
-func NewContactService(store store.ContactStore, publisher EventPublisher) *ContactService {
+func NewContactService(store store.ContactStore, publisher EventPublisher) Contacter {
 	return &ContactService{
 		store:     store,
 		publisher: publisher,

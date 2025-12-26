@@ -1,6 +1,6 @@
 networks:
   webitel:
-    driver: bridge 
+    driver: bridge
 
 volumes:
   postgres-master-data:
@@ -115,7 +115,7 @@ services:
         limits:
           cpus: '0.5'
           memory: 512M
-  
+
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     container_name: im-contact-rabbit
@@ -176,7 +176,7 @@ services:
       context: ../../
       dockerfile: ./Dockerfile
     container_name: im-contact-service
-    restart: unless-stopped
+    restart: no
     command: ["server", "--config_file=/config/config.yaml"]
     networks:
       - webitel
