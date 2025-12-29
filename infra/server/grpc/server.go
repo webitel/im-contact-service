@@ -75,7 +75,7 @@ func New(addr string, log *slog.Logger) (*Server, error) {
 		grpc.ChainUnaryInterceptor(
 			intrcp.UnaryServerErrorInterceptor(),
 			interceptors.NewUnaryAuthInterceptor(),
-			intrcp.RecoveryUnaryServerInterceptor(log),
+			//intrcp.RecoveryUnaryServerInterceptor(log),
 			validatemiddleware.UnaryServerInterceptor(validator),
 		),
 	)

@@ -265,7 +265,10 @@ func ProvidePubSub(cfg *config.Config, l *slog.Logger, lc fx.Lifecycle) (pubsub.
 			return router.Close()
 		},
 		OnStart: func(ctx context.Context) error {
-			return router.Run(ctx)
+			go func() error {
+				return router.Run(ctx)
+			}()
+			return nil
 		},
 	})
 

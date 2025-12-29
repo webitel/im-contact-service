@@ -84,6 +84,8 @@ func (c *contactStore) Delete(ctx context.Context, command *dto.DeleteContactCom
 func (c *contactStore) Search(ctx context.Context, filter *dto.ContactSearchFilter) ([]*model.Contact, error) {
 	if filter.Q != nil && *filter.Q != "" {
 		*filter.Q += "%"
+	} else {
+		filter.Q = nil
 	}
 
 	selectFields := "*"
