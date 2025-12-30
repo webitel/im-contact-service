@@ -3,25 +3,40 @@ package amqp
 import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	pubsubadapter "github.com/webitel/im-contact-service/internal/adapter/pubsub"
+	"github.com/webitel/im-contact-service/internal/domain/events"
 )
 
-func RegisterHandlers(router *message.Router, subProvider *pubsubadapter.SubscriberProvider, h *MessageHandler) error {
+// Exchange names
+const (
+	WebitelGoExchange = "webitel"
+)
+
+// Queue names
+const (
+	DomainDeletedQueue = "im_contacts.domain_delete"
+)
+
+func RegisterHandlers(
+	router *message.Router,
+	subProvider *pubsubadapter.SubscriberProvider,
+	h *MessageHandler,
+) error {
 	subscriptions := []struct {
-		topic      string
-		queueGroup string
-		handler    message.NoPublishHandlerFunc
+		topic   string
+		queue   string
+		handler message.NoPublishHandlerFunc
 	}{
 		{
-			topic:      "domain.deleted",
-			queueGroup: "wbt.directory.domain_deleted",
-			handler:    bind(h.OnDomainDeleted),
+			topic:   events.DomainDeletedTopic,
+			queue:   DomainDeletedQueue,
+			handler: bind(h.OnDomainDeleted),
 		},
 	}
 
 	for _, s := range subscriptions {
 		sub, err := subProvider.Build(
-			s.queueGroup,
-			"webitel.admin",
+			s.queue,
+			WebitelGoExchange,
 			s.topic,
 		)
 		if err != nil {
@@ -29,7 +44,7 @@ func RegisterHandlers(router *message.Router, subProvider *pubsubadapter.Subscri
 		}
 
 		router.AddConsumerHandler(
-			s.queueGroup+"_handler",
+			s.queue+"_handler",
 			s.topic,
 			sub,
 			s.handler,

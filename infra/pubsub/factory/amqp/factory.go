@@ -58,6 +58,7 @@ func (f *Factory) BuildSubscriber(name string, subConfig *factory.SubscriberConf
 			Consumer:  name,
 			Exclusive: subConfig.ExclusiveConsumer,
 		},
+		TopologyBuilder: &amqp.DefaultTopologyBuilder{},
 	}
 	return amqp.NewSubscriber(conf, f.logger)
 }
@@ -80,6 +81,7 @@ func (f *Factory) BuildPublisher(pubConfig *factory.PublisherConfig) (message.Pu
 				return s
 			},
 		},
+		TopologyBuilder: &amqp.DefaultTopologyBuilder{},
 	}
 	return amqp.NewPublisher(conf, f.logger)
 }

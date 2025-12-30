@@ -47,7 +47,7 @@ func (c *ContactService) SearchContact(ctx context.Context, request *impb.Search
 	result := &impb.ContactList{
 		Page:     request.GetPage(),
 		Size:     request.GetSize(),
-		Contacts: make([]*impb.Contact, len(contacts)),
+		Contacts: make([]*impb.Contact, 0, len(contacts)),
 	}
 	if len(contacts) > int(request.GetSize()) {
 		result.Next = true

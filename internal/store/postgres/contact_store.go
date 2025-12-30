@@ -84,6 +84,8 @@ func (c *contactStore) Delete(ctx context.Context, command *dto.DeleteContactCom
 func (c *contactStore) Search(ctx context.Context, filter *dto.ContactSearchFilter) ([]*model.Contact, error) {
 	if filter.Q != nil && *filter.Q != "" {
 		*filter.Q += "%"
+	} else {
+		filter.Q = nil
 	}
 
 	selectFields := "*"
@@ -156,4 +158,21 @@ func (c *contactStore) Update(ctx context.Context, updater *dto.UpdateContactCom
 		return nil, fmt.Errorf("error creating contact: %v", err)
 	}
 	return &result, nil
+}
+
+func (c *contactStore) ClearByDomain(ctx context.Context, domainId int) error {
+	var (
+		query = `
+			delete from im_contact.contact
+			where domain_id = @domain_id
+		`
+		args = pgx.NamedArgs{
+			"domain_id": domainId,
+		}
+	)
+
+	if _, err := c.db.Master().Exec(ctx, query, args); err != nil {
+		return fmt.Errorf("contactStore.ClearByDomain (id = %d): %w", domainId, err)
+	}
+	return nil
 }

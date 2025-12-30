@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"net/url"
 	"os"
@@ -250,13 +249,11 @@ func ProvidePubSub(cfg *config.Config, l *slog.Logger, lc fx.Lifecycle) (pubsub.
 	)
 
 	switch pubsubConfig.Driver {
-	case "amqp":
+	default:
 		pubsubFactory, err = amqp.NewFactory(pubsubConfig.URL, loggerAdapter)
 		if err != nil {
 			return nil, err
 		}
-	default:
-		return nil, errors.New("pubsub driver not supported")
 	}
 
 	router, err := message.NewRouter(message.RouterConfig{}, loggerAdapter)
@@ -268,7 +265,10 @@ func ProvidePubSub(cfg *config.Config, l *slog.Logger, lc fx.Lifecycle) (pubsub.
 			return router.Close()
 		},
 		OnStart: func(ctx context.Context) error {
-			return router.Run(ctx)
+			go func() error {
+				return router.Run(ctx)
+			}()
+			return nil
 		},
 	})
 

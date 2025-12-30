@@ -8,10 +8,9 @@
       "mode": "debug",
       "program": "${workspaceFolder}/main.go",
       "cwd": "${workspaceFolder}",
-      "envFile": "${workspaceFolder}/config/config.env", 
+      "envFile": "${workspaceFolder}/config/.env",
       "args": [
         "server",
-        "--config_file=${workspaceFolder}/config/config.yml"
       ],
       "console": "integratedTerminal",
       "showLog": true

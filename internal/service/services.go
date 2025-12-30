@@ -20,7 +20,11 @@ var Module = fx.Module("service",
 		pubsubadapter.NewSubscriberProvider,
 		amqp.NewMessageHandler,
 
-		NewContactService,
+		// NewContactService,
+		fx.Annotate(
+			NewContactService,
+			fx.As(new(Contacter), new(amqp.DomainDeletedEventHandler)),
+		),
 	),
 
 	fx.Invoke(amqp.RegisterHandlers),

@@ -1,6 +1,8 @@
 package server
 
 import (
+	"github.com/webitel/im-contact-service/internal/service"
+	"github.com/webitel/im-contact-service/internal/store/postgres"
 	"go.uber.org/fx"
 
 	"github.com/webitel/im-contact-service/config"
@@ -17,6 +19,8 @@ func NewApp(cfg *config.Config) *fx.App {
 			ProvidePubSub,
 			ProvideNewDBConnection,
 		),
+		postgres.Module,
+		service.Module,
 		grpcsrv.Module,
 		grpchandler.Module,
 	)

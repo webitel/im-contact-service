@@ -22,6 +22,12 @@ func CMD() *cli.Command {
 		Name:    "migrate",
 		Aliases: []string{"m"},
 		Usage:   "Execute database migrations",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:  "config_file",
+				Usage: "Path to the configuration file",
+			},
+		},
 		Action: func(c *cli.Context) error {
 			cfg, err := config.LoadConfig()
 			if err != nil {

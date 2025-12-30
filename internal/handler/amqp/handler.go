@@ -3,22 +3,21 @@ package amqp
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/webitel/im-contact-service/internal/domain/events"
 )
 
-type EventSubscriber interface {
-	DeleteByDomain(ctx context.Context, id uuid.UUID) error
+type DomainDeletedEventHandler interface {
+	DeleteByDomain(ctx context.Context, domainId int) error
 }
 
 type MessageHandler struct {
-	service EventSubscriber
+	service DomainDeletedEventHandler
 }
 
-func NewMessageHandler(svc EventSubscriber) *MessageHandler {
+func NewMessageHandler(svc DomainDeletedEventHandler) *MessageHandler {
 	return &MessageHandler{service: svc}
 }
 
 func (h *MessageHandler) OnDomainDeleted(ctx context.Context, event events.DomainDeleted) error {
-	return h.service.DeleteByDomain(ctx, event.EntityID())
+	return h.service.DeleteByDomain(ctx, event.DomainID())
 }

@@ -22,8 +22,8 @@ type Contacter interface {
 }
 
 var (
-	_ Contacter            = &ContactService{}
-	_ amqp.EventSubscriber = &ContactService{}
+	_ Contacter                      = &ContactService{}
+	_ amqp.DomainDeletedEventHandler = &ContactService{}
 )
 
 // EventPublisher defines the contract for publishing domain events.
@@ -38,7 +38,7 @@ type ContactService struct {
 }
 
 // NewContactService creates a new ContactService instance.
-func NewContactService(store store.ContactStore, publisher EventPublisher) *ContactService {
+func NewContactService(store store.ContactStore, publisher EventPublisher) Contacter {
 	return &ContactService{
 		store:     store,
 		publisher: publisher,
@@ -124,13 +124,11 @@ func (s *ContactService) CanSend(ctx context.Context, query *dto.CanSendQuery) (
 	return false, nil
 }
 
-func (s *ContactService) DeleteByDomain(ctx context.Context, id uuid.UUID) error {
-	// FIXME implement actual deletion logic
-
-	// err := s.store.DeleteByApplication(ctx, appId)
-	// if err != nil {
-	// 	return err
-	// }
+func (s *ContactService) DeleteByDomain(ctx context.Context, domainId int) error {
+	err := s.store.ClearByDomain(ctx, domainId)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
