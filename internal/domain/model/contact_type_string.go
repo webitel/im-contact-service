@@ -18,9 +18,8 @@ const _ContactType_name = "WebitelUserBot"
 var _ContactType_index = [...]uint8{0, 7, 11, 14}
 
 func (i ContactType) String() string {
-	idx := int(i) - 0
-	if i < 0 || idx >= len(_ContactType_index)-1 {
+	if i < 0 || i >= ContactType(len(_ContactType_index)-1) {
 		return "ContactType(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _ContactType_name[_ContactType_index[idx]:_ContactType_index[idx+1]]
+	return _ContactType_name[_ContactType_index[i]:_ContactType_index[i+1]]
 }
