@@ -17,7 +17,7 @@ type Contacter interface {
 	Create(ctx context.Context, input *model.Contact) (*model.Contact, error)
 	Update(ctx context.Context, input *dto.UpdateContactCommand) (*model.Contact, error)
 	Delete(ctx context.Context, input *dto.DeleteContactCommand) error
-	CanSend(ctx context.Context, query *dto.CanSendQuery) (bool, error)
+	CanSend(ctx context.Context, query *dto.CanSendQuery) error
 }
 
 // EventPublisher defines the contract for publishing domain events.
@@ -103,13 +103,30 @@ func (s *ContactService) Delete(ctx context.Context, input *dto.DeleteContactCom
 }
 
 // CanSend checks if a message can be sent to/from a contact.
-func (s *ContactService) CanSend(ctx context.Context, query *dto.CanSendQuery) (bool, error) {
+func (s *ContactService) CanSend(ctx context.Context, query *dto.CanSendQuery) error {
 	if query == nil {
-		return false, errors.InvalidArgument("query is required")
+		return errors.InvalidArgument("query is required")
 	}
 
-	// FIXME mocked for now, implement actual logic later
-	return false, nil
+	peers, err := s.store.Search(ctx, &dto.ContactSearchFilter{Ids: []uuid.UUID{query.From, query.To}})
+	if err != nil {
+		return err
+	}
+
+	switch len(peers) {
+	case 0:
+		return errors.NotFound("no contacts found for the provided IDs")
+	case 1:
+		if query.From != query.To {
+			return errors.NotFound("no contacts found for the provided IDs")
+		}
+	case 2:
+		return nil
+	default:
+		return errors.InvalidArgument("too many contacts found for the provided IDs")
+	}
+
+	return nil
 }
 
 // validateCreate performs business rules validation for new contacts.
@@ -117,9 +134,11 @@ func (s *ContactService) validateCreate(input *model.Contact) error {
 	if input == nil {
 		return errors.InvalidArgument("input is nil")
 	}
+
 	if input.Username == "" {
 		return errors.InvalidArgument("username is required")
 	}
+
 	if input.IssuerId == "" {
 		return errors.InvalidArgument("issuerId is required")
 	}

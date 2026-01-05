@@ -107,10 +107,12 @@ func (c *ContactService) UpdateContact(ctx context.Context, request *impb.Update
 }
 
 func (c *ContactService) DeleteContact(ctx context.Context, request *impb.DeleteContactRequest) (*impb.Contact, error) {
+
 	contactId, err := uuid.Parse(request.GetId())
 	if err != nil {
 		return nil, errors.New("invalid contact id", errors.WithCause(err))
 	}
+
 	err = c.handler.Delete(ctx, &dto.DeleteContactCommand{
 		Id: contactId,
 	})
@@ -122,7 +124,22 @@ func (c *ContactService) DeleteContact(ctx context.Context, request *impb.Delete
 }
 
 func (c *ContactService) CanSend(ctx context.Context, request *impb.CanSendRequest) (*impb.CanSendResponse, error) {
-	return &impb.CanSendResponse{
-		Can: true,
-	}, nil
+
+	// Find both contacts by their IDs.
+	fromId, err := uuid.Parse(request.GetFromId())
+	if err != nil {
+		return nil, errors.InvalidArgument("invalid from ID", errors.WithCause(err))
+	}
+
+	toId, err := uuid.Parse(request.GetToId())
+	if err != nil {
+		return nil, errors.InvalidArgument("invalid to ID", errors.WithCause(err))
+	}
+
+	err = c.handler.CanSend(ctx, &dto.CanSendQuery{From: fromId, To: toId})
+	if err != nil {
+		return nil, err
+	}
+
+	return &impb.CanSendResponse{Can: true}, nil
 }

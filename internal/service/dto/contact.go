@@ -27,8 +27,8 @@ type (
 	}
 
 	CanSendQuery struct {
-		From string `json:"from"`
-		To   string `json:"to"`
+		From uuid.UUID `json:"from"`
+		To   uuid.UUID `json:"to"`
 	}
 
 	DeleteContactCommand struct {

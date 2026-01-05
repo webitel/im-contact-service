@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/webitel/im-contact-service/internal/service"
 	"github.com/webitel/im-contact-service/internal/store/postgres"
+	"github.com/webitel/webitel-go-kit/infra/discovery"
 	"go.uber.org/fx"
 
 	"github.com/webitel/im-contact-service/config"
@@ -19,6 +20,7 @@ func NewApp(cfg *config.Config) *fx.App {
 			ProvidePubSub,
 			ProvideNewDBConnection,
 		),
+		fx.Invoke(func(discovery discovery.DiscoveryProvider) error { return nil }),
 		postgres.Module,
 		service.Module,
 		grpcsrv.Module,
