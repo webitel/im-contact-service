@@ -16,6 +16,7 @@ type (
 		Apps     []string    `json:"apps"`
 		Issuers  []string    `json:"issuers"`
 		Types    []string    `json:"types"`
+		Subjects []string    `json:"subjects"`
 	}
 
 	UpdateContactCommand struct {
@@ -24,6 +25,7 @@ type (
 		Name     *string           `json:"name"`
 		Username *string           `json:"username"`
 		Metadata map[string]string `json:"metadata"`
+		Subject  string            `json:"subject"`
 	}
 
 	CanSendQuery struct {

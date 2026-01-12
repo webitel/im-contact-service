@@ -39,6 +39,7 @@ func (c *ContactService) SearchContact(ctx context.Context, request *impb.Search
 		Apps:    request.GetAppId(),
 		Issuers: request.GetIssId(),
 		Types:   request.GetType(),
+		Subjects: request.GetSubjects(),
 	})
 	if err != nil {
 		return nil, err
@@ -79,6 +80,7 @@ func (c *ContactService) CreateContact(ctx context.Context, request *impb.Create
 		Name:          request.GetName(),
 		Username:      request.GetUsername(),
 		Metadata:      request.GetMetadata(),
+		SubjectId: request.GetSubject(),
 	})
 	if err != nil {
 		return nil, err
@@ -98,6 +100,7 @@ func (c *ContactService) UpdateContact(ctx context.Context, request *impb.Update
 		Name:     &request.Name,
 		Username: &request.Username,
 		Metadata: request.GetMetadata(),
+		Subject: request.GetSubject(),
 	})
 	if err != nil {
 		return nil, err
