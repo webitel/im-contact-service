@@ -1,8 +1,6 @@
 package grpc
 
 import (
-	"context"
-
 	"go.uber.org/fx"
 
 	impb "github.com/webitel/im-contact-service/gen/go/api/v1"
@@ -12,20 +10,20 @@ import (
 var Module = fx.Module("grpc",
 	fx.Provide(
 		NewContactService,
+		NewBotsService,
 	),
 	fx.Invoke(
 		RegisterContactService,
+		RegisterBotService,
 	),
 )
 
 func RegisterContactService(server *grpcsrv.Server, service *ContactService, lc fx.Lifecycle) error {
-	lc.Append(
-		fx.Hook{
-			OnStart: func(ctx context.Context) error {
-				impb.RegisterContactsServer(server.Server, service)
-				return nil
-			},
-		})
+	impb.RegisterContactsServer(server.Server, service)
+	return nil
+}
 
+func RegisterBotService(server *grpcsrv.Server, service *BotsServer, lc fx.Lifecycle) error {
+	impb.RegisterBotsServer(server.Server, service)
 	return nil
 }

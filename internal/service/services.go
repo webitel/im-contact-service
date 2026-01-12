@@ -21,5 +21,9 @@ var Module = fx.Module("service",
 			NewContactService,
 			fx.As(new(Contacter)),
 		),
+		fx.Annotate(
+			NewBaseBotManager,
+			fx.As(new(BotManager)),
+		),
 	),
 )

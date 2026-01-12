@@ -127,19 +127,9 @@ func (c *ContactService) DeleteContact(ctx context.Context, request *impb.Delete
 }
 
 func (c *ContactService) CanSend(ctx context.Context, request *impb.CanSendRequest) (*impb.CanSendResponse, error) {
+	canSendQuery := mapper.CanSendRequest2Model(request)
 
-	// Find both contacts by their IDs.
-	fromId, err := uuid.Parse(request.GetFromId())
-	if err != nil {
-		return nil, errors.InvalidArgument("invalid from ID", errors.WithCause(err))
-	}
-
-	toId, err := uuid.Parse(request.GetToId())
-	if err != nil {
-		return nil, errors.InvalidArgument("invalid to ID", errors.WithCause(err))
-	}
-
-	err = c.handler.CanSend(ctx, &dto.CanSendQuery{From: fromId, To: toId})
+	err := c.handler.CanSend(ctx, canSendQuery)
 	if err != nil {
 		return nil, err
 	}

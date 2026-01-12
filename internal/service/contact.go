@@ -29,13 +29,15 @@ type EventPublisher interface {
 type ContactService struct {
 	store     store.ContactStore
 	publisher EventPublisher
+	botStore store.BotStore
 }
 
 // NewContactService creates a new ContactService instance.
-func NewContactService(store store.ContactStore, publisher EventPublisher) Contacter {
+func NewContactService(store store.ContactStore, publisher EventPublisher, botStore store.BotStore) Contacter {
 	return &ContactService{
 		store:     store,
 		publisher: publisher,
+		botStore: botStore,
 	}
 }
 
@@ -108,12 +110,34 @@ func (s *ContactService) CanSend(ctx context.Context, query *dto.CanSendQuery) e
 		return errors.InvalidArgument("query is required")
 	}
 
-	peers, err := s.store.Search(ctx, &dto.ContactSearchFilter{Ids: []uuid.UUID{query.From, query.To}})
+	var (
+		bots uuid.UUIDs
+		users uuid.UUIDs
+	)
+
+	if query.From.Kind == model.PeerBot {
+		bots = append(bots, query.From.Id)
+	} else {
+		users = append(users, query.From.Id)
+	}
+
+	if query.To.Kind == model.PeerBot {
+		bots = append(bots, query.To.Id)
+	} else {
+		users = append(users, query.To.Id)
+	}
+
+	usersPeers, err := s.store.Search(ctx, &dto.ContactSearchFilter{Ids: users, DomainId: query.DomainId})
 	if err != nil {
 		return err
 	}
 
-	switch len(peers) {
+	botsPeers, err := s.botStore.Search(ctx, &dto.SearchBotRequest{BaseFilter: dto.BaseFilter{DomainId: query.DomainId}, Ids: bots})
+	if err != nil {
+		return err
+	}
+
+	switch (len(usersPeers) + len(botsPeers)) {
 	case 0:
 		return errors.NotFound("no contacts found for the provided IDs")
 	case 1:
