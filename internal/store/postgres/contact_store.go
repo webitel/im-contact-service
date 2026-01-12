@@ -107,6 +107,7 @@ func (c *contactStore) Search(ctx context.Context, filter *dto.ContactSearchFilt
             AND (@apps::text[] IS NULL OR application_id = ANY(@apps::text[]))
             AND (@issuers::text[] IS NULL OR issuer_id = ANY(@issuers::text[]))
             AND (@types::text[] IS NULL OR type = ANY(@types::text[]))
+			and (@subjects::text[] is null or subject_id = any(@subjects::text[]))
         ORDER BY %s
         LIMIT @limit OFFSET @offset`, selectFields, sortClause)
 
@@ -119,6 +120,7 @@ func (c *contactStore) Search(ctx context.Context, filter *dto.ContactSearchFilt
 			"types":     filter.Types,
 			"limit":     limit + 1,
 			"offset":    offset,
+			"subjects": filter.Subjects,
 		}
 		contacts []*model.Contact
 	)
@@ -138,6 +140,7 @@ func (c *contactStore) Update(ctx context.Context, updater *dto.UpdateContactCom
 				name = coalesce(@name, name),
 				username = coalesce(@username, username),
 				metadata = coalesce(@metadata, metadata),
+				subject_id = coalesce(@subject, subject_id),
 				updated_at = now()
 			where domain_id = @domain_id
 				and id = @id
@@ -150,6 +153,7 @@ func (c *contactStore) Update(ctx context.Context, updater *dto.UpdateContactCom
 			"name":      updater.Name,
 			"username":  updater.Username,
 			"metadata":  updater.Metadata,
+			"subject": updater.Subject,
 		}
 		result model.Contact
 	)

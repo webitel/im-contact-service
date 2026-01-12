@@ -19,5 +19,6 @@ func MarshalContact(contact *model.Contact) (*impb.Contact, error) {
 		Metadata:  contact.Metadata,
 		CreatedAt: contact.CreatedAt.UnixMilli(),
 		UpdatedAt: contact.UpdatedAt.UnixMilli(),
+		Subject: contact.SubjectId,
 	}, nil
 }
