@@ -1,4 +1,4 @@
-package pubsub
+package adapter
 
 import (
 	"github.com/ThreeDotsLabs/watermill/message"
