@@ -2,6 +2,7 @@ package dto
 
 import (
 	"github.com/google/uuid"
+	"github.com/webitel/im-contact-service/internal/domain/model"
 )
 
 type (
@@ -29,8 +30,9 @@ type (
 	}
 
 	CanSendQuery struct {
-		From uuid.UUID `json:"from"`
-		To   uuid.UUID `json:"to"`
+		DomainId int
+		From model.Peer `json:"from"`
+		To   model.Peer `json:"to"`
 	}
 
 	DeleteContactCommand struct {

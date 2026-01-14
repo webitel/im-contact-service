@@ -12,7 +12,11 @@ import (
 )
 
 func NewApp(cfg *config.Config) *fx.App {
-	return fx.New(
+	return fx.New(MainModule(cfg))
+}
+
+func MainModule(cfg *config.Config) fx.Option {
+	return fx.Options(
 		fx.Provide(
 			func() *config.Config { return cfg },
 			ProvideLogger,
@@ -26,4 +30,4 @@ func NewApp(cfg *config.Config) *fx.App {
 		grpcsrv.Module,
 		grpchandler.Module,
 	)
-}
+} 
