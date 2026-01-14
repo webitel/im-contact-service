@@ -28,8 +28,8 @@ func MarshalContact(contact *model.Contact) (*impb.Contact, error) {
 
 func CanSendRequest2Model(request *impb.CanSendRequest) *dto.CanSendQuery {
 	var (
-		from = MapOneof2ConstPeerKind(request.FromId)
-		to = MapOneof2ConstPeerKind(request.ToId)
+		from = MapOneof2ConstPeerKind(request.From)
+		to = MapOneof2ConstPeerKind(request.To)
 	)
 
 	canSendQuery := &dto.CanSendQuery{
