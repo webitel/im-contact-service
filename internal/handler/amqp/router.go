@@ -1,9 +1,14 @@
 package amqp
 
 import (
+	"context"
+	"log/slog"
+
+	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	pubsubadapter "github.com/webitel/im-contact-service/internal/adapter/pubsub"
 	"github.com/webitel/im-contact-service/internal/domain/events"
+	"go.uber.org/fx"
 )
 
 // Exchange names
@@ -52,4 +57,28 @@ func RegisterHandlers(
 	}
 
 	return nil
+}
+
+
+func NewWatermillRouter(lc fx.Lifecycle, logger *slog.Logger) (*message.Router, error) {
+    router, err := message.NewRouter(message.RouterConfig{}, watermill.NewSlogLogger(logger))
+    if err != nil {
+        return nil, err
+    }
+
+    lc.Append(fx.Hook{
+        OnStart: func(ctx context.Context) error {
+            go func() {
+                if err := router.Run(ctx); err != nil {
+                    logger.Error("watermill router run error", "err", err)
+                }
+            }()
+            return nil
+        },
+        OnStop: func(ctx context.Context) error {
+            return router.Close()
+        },
+    })
+
+    return router, nil
 }

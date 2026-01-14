@@ -7,29 +7,31 @@ import (
 )
 
 var Module = fx.Module("service",
-	fx.Provide(
-		pubsubadapter.NewPublisherProvider,
-		func(pp *pubsubadapter.PublisherProvider) (EventPublisher, error) {
-			wmPub, err := pp.Build("im.contacts")
-			if err != nil {
-				return nil, err
-			}
-			return pubsubadapter.NewEventDispatcher(wmPub), nil
-		},
+    fx.Provide(
+        pubsubadapter.NewPublisherProvider,
+        func(pp *pubsubadapter.PublisherProvider) (EventPublisher, error) {
+            wmPub, err := pp.Build("im.contacts")
+            if err != nil {
+                return nil, err
+            }
+            return pubsubadapter.NewEventDispatcher(wmPub), nil
+        },
 
-		pubsubadapter.NewSubscriberProvider,
-		amqp.NewMessageHandler,
+        pubsubadapter.NewSubscriberProvider,
+        amqp.NewMessageHandler,
+        amqp.NewWatermillRouter,
 
-		// NewContactService,
-		fx.Annotate(
-			NewContactService,
-			fx.As(new(Contacter), new(amqp.DomainDeletedEventHandler)),
-		),
-		fx.Annotate(
-			NewBaseBotManager,
-			fx.As(new(BotManager)),
-		),
-	),
+        fx.Annotate(
+            NewContactService,
+            fx.As(new(Contacter)),
+            fx.As(new(amqp.DomainDeletedEventHandler)),
+        ),
 
-	fx.Invoke(amqp.RegisterHandlers),
+        fx.Annotate(
+            NewBaseBotManager,
+            fx.As(new(BotManager)),
+        ),
+    ),
+
+    fx.Invoke(amqp.RegisterHandlers),
 )
