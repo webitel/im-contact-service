@@ -52,7 +52,7 @@ func BotModelList2SearchResponse(bots []*model.WebitelBot, hasNext bool) *impb.S
 	}
 
 	return &impb.SearchBotsResponse{
-		HasNext: hasNext,
+		Next: hasNext,
 		WebitelBotList: webitelBotsList,
 	}
 }
