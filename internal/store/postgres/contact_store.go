@@ -95,7 +95,7 @@ func (c *contactStore) Search(ctx context.Context, filter *dto.ContactSearchFilt
 
 	sortClause := store.ValidateAndFormatSort(filter.Sort, model.ContactAllowedFields())
 	limit := max(filter.Size, 1)
-	offset := (filter.Page - 1) * filter.Size
+	offset := max((filter.Page - 1) * filter.Size, 0)
 
 	var (
 		query = fmt.Sprintf(`

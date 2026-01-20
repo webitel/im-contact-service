@@ -1,29 +1,27 @@
 version: v2
-
-
 managed:
   enabled: true
   override:
-    - file_option: go_package_prefix
-      value: github.com/bufbuild/buf-examples/protovalidate/quickstart-go/start/gen
-  disable:
+    # Forces all generated files into a single Go package, 
+    # merging 'internal' and 'shared' protos into one directory.
     - file_option: go_package
-      module: buf.build/bufbuild/protovalidate
-
+      value: github.com/webitel/protos/gen/go/im/contact/v1;contact
 
 plugins:
-  # Base types for Go. Generates message and enum types.
-  - remote: buf.build/protocolbuffers/go:v1.30.0
+  # Standard Go Protobuf generator
+  - remote: buf.build/protocolbuffers/go:v1.34.1
     out: ../gen/go/api
-    opt: paths=source_relative
+    opt:
+      # 'module' tells Buf to strip this prefix from the output path,
+      # ensuring files land in delivery/v1/ instead of a deep nested path.
+      - module=github.com/webitel/protos/gen/go/im
 
-  # Generates Go client and server stubs for the gRPC framework.
-  - remote: buf.build/grpc/go:v1.3.0
+  # gRPC Go generator
+  - remote: buf.build/grpc/go:v1.5.1
     out: ../gen/go/api
-    opt: paths=source_relative
+    opt:
+      - module=github.com/webitel/protos/gen/go/im
 
 inputs:
-#  - git_repo: "https://github.com/webitel/protos"
-#    branch: "feat/messaging"
-#    subdir: "im/internal/contact"
-  - directory: "../../protos/im/internal/contact"
+  # The relative path to the source proto files
+  - directory: "../../protos/im"

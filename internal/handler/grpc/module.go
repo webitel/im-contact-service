@@ -3,7 +3,7 @@ package grpc
 import (
 	"go.uber.org/fx"
 
-	impb "github.com/webitel/im-contact-service/gen/go/api/v1"
+	impb "github.com/webitel/im-contact-service/gen/go/api/contact/v1"
 	grpcsrv "github.com/webitel/im-contact-service/infra/server/grpc"
 )
 

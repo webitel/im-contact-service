@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	impb "github.com/webitel/im-contact-service/gen/go/api/v1"
+	impb "github.com/webitel/im-contact-service/gen/go/api/contact/v1"
 	"github.com/webitel/im-contact-service/internal/handler/grpc/mapper"
 	"github.com/webitel/im-contact-service/internal/service"
 )
