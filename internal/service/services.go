@@ -26,11 +26,6 @@ var Module = fx.Module("service",
             fx.As(new(Contacter)),
             fx.As(new(amqp.DomainDeletedEventHandler)),
         ),
-
-        fx.Annotate(
-            NewBaseBotManager,
-            fx.As(new(BotManager)),
-        ),
     ),
 
     fx.Invoke(amqp.RegisterHandlers),

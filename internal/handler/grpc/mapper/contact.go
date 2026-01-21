@@ -2,7 +2,7 @@ package mapper
 
 import (
 	"github.com/google/uuid"
-	impb "github.com/webitel/im-contact-service/gen/go/api/v1"
+	impb "github.com/webitel/im-contact-service/gen/go/api/contact/v1"
 	"github.com/webitel/im-contact-service/internal/domain/model"
 	"github.com/webitel/im-contact-service/internal/service/dto"
 )

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"log/slog"
+	"sync"
 	"testing"
 
 	"github.com/go-faker/faker/v4"
@@ -383,6 +384,213 @@ func (suite *ContactStoreTestSuite) TestClearByDomain() {
 	})
 
 	suite.Len(res, 5)
+}
+
+//#endregion
+
+// #region Upsert
+
+func (suite *ContactStoreTestSuite) TestUpsert_Insert_HappyPath() {
+	contact := newContact(1)
+
+	result, isInsert, err := suite.repo.Upsert(suite.ctx, contact)
+
+	suite.Require().NoError(err)
+	suite.True(isInsert, "Expected insert operation")
+	suite.NotNil(result)
+	suite.NotEqual(uuid.Nil, result.Id)
+	suite.NotZero(result.CreatedAt)
+	suite.NotZero(result.UpdatedAt)
+	suite.Equal(contact.Name, result.Name)
+	suite.Equal(contact.Username, result.Username)
+	suite.Equal(contact.IssuerId, result.IssuerId)
+	suite.Equal(contact.SubjectId, result.SubjectId)
+}
+
+func (suite *ContactStoreTestSuite) TestUpsert_Update_HappyPath() {
+	contact := newContact(1, func(c *model.Contact) {
+		c.Name = "Original Name"
+		c.Username = "original@example.com"
+	})
+
+	first, isInsert, err := suite.repo.Upsert(suite.ctx, contact)
+	suite.Require().NoError(err)
+	suite.True(isInsert)
+
+	updatedContact := newContact(1, func(c *model.Contact) {
+		c.IssuerId = contact.IssuerId
+		c.SubjectId = contact.SubjectId
+		c.Name = "Updated Name"
+		c.Username = "updated@example.com"
+	})
+
+	second, isInsert, err := suite.repo.Upsert(suite.ctx, updatedContact)
+	suite.Require().NoError(err)
+	suite.False(isInsert, "Expected update operation")
+	suite.Equal(first.Id, second.Id, "ID should remain the same")
+	suite.Equal("Updated Name", second.Name)
+	suite.Equal("updated@example.com", second.Username)
+	suite.Equal(first.CreatedAt, second.CreatedAt, "CreatedAt should not change")
+	suite.Greater(second.UpdatedAt, first.UpdatedAt, "UpdatedAt should be newer")
+}
+
+func (suite *ContactStoreTestSuite) TestUpsert_Update_Metadata() {
+	contact := newContact(1, func(c *model.Contact) {
+		c.Metadata = map[string]string{
+			"lang": "en",
+			"tz":   "UTC",
+		}
+	})
+
+	first, _, err := suite.repo.Upsert(suite.ctx, contact)
+	suite.Require().NoError(err)
+	suite.Equal("en", first.Metadata["lang"])
+
+	updated := newContact(1, func(c *model.Contact) {
+		c.IssuerId = contact.IssuerId
+		c.SubjectId = contact.SubjectId
+		c.Metadata = map[string]string{
+			"lang":   "uk",
+			"tz":     "Europe/Kyiv",
+			"source": "landing",
+		}
+	})
+
+	second, isInsert, err := suite.repo.Upsert(suite.ctx, updated)
+	suite.Require().NoError(err)
+	suite.False(isInsert)
+	suite.Equal("uk", second.Metadata["lang"])
+	suite.Equal("Europe/Kyiv", second.Metadata["tz"])
+	suite.Equal("landing", second.Metadata["source"])
+}
+
+func (suite *ContactStoreTestSuite) TestUpsert_Update_MetadataClear() {
+	contact := newContact(1, func(c *model.Contact) {
+		c.Metadata = map[string]string{
+			"lang": "en",
+		}
+	})
+
+	first, _, err := suite.repo.Upsert(suite.ctx, contact)
+	suite.Require().NoError(err)
+	suite.NotEmpty(first.Metadata)
+
+	updated := newContact(1, func(c *model.Contact) {
+		c.IssuerId = contact.IssuerId
+		c.SubjectId = contact.SubjectId
+		c.Metadata = nil
+	})
+
+	second, isInsert, err := suite.repo.Upsert(suite.ctx, updated)
+	suite.Require().NoError(err)
+	suite.False(isInsert)
+	suite.Empty(second.Metadata)
+}
+
+func (suite *ContactStoreTestSuite) TestUpsert_Insert_WithNilMetadata() {
+	contact := newContact(1, func(c *model.Contact) {
+		c.Metadata = nil
+	})
+
+	result, isInsert, err := suite.repo.Upsert(suite.ctx, contact)
+
+	suite.Require().NoError(err)
+	suite.True(isInsert)
+	suite.True(len(result.Metadata) == 0)
+}
+
+func (suite *ContactStoreTestSuite) TestUpsert_Insert_MissingUsername() {
+	contact := newContact(1, func(c *model.Contact) {
+		c.Username = ""
+	})
+
+	_, _, err := suite.repo.Upsert(suite.ctx, contact)
+	suite.Error(err, "Should fail on empty username")
+}
+
+func (suite *ContactStoreTestSuite) TestUpsert_MultipleContactsDifferentDomains() {
+	contact1 := newContact(1, func(c *model.Contact) {
+		c.IssuerId = "same-issuer"
+		c.SubjectId = "same-subject"
+		c.Name = "Domain 1 Contact"
+	})
+
+	contact2 := newContact(2, func(c *model.Contact) {
+		c.IssuerId = "same-issuer"
+		c.SubjectId = "same-subject"
+		c.Name = "Domain 2 Contact"
+	})
+
+	result1, isInsert1, err := suite.repo.Upsert(suite.ctx, contact1)
+	suite.Require().NoError(err)
+	suite.True(isInsert1)
+
+	result2, isInsert2, err := suite.repo.Upsert(suite.ctx, contact2)
+	suite.Require().NoError(err)
+	suite.True(isInsert2)
+
+	suite.NotEqual(result1.Id, result2.Id, "Different domains should have different IDs")
+	suite.Equal("Domain 1 Contact", result1.Name)
+	suite.Equal("Domain 2 Contact", result2.Name)
+}
+
+func (suite *ContactStoreTestSuite) TestUpsert_ConsecutiveUpdates() {
+	contact := newContact(1)
+
+	v1, isInsert, err := suite.repo.Upsert(suite.ctx, contact)
+	suite.Require().NoError(err)
+	suite.True(isInsert)
+
+	contact.Name = "Name v2"
+	v2, isInsert, err := suite.repo.Upsert(suite.ctx, contact)
+	suite.Require().NoError(err)
+	suite.False(isInsert)
+	suite.Equal("Name v2", v2.Name)
+	suite.Greater(v2.UpdatedAt, v1.UpdatedAt)
+
+	contact.Name = "Name v3"
+	v3, isInsert, err := suite.repo.Upsert(suite.ctx, contact)
+	suite.Require().NoError(err)
+	suite.False(isInsert)
+	suite.Equal("Name v3", v3.Name)
+	suite.Greater(v3.UpdatedAt, v2.UpdatedAt)
+
+	suite.Equal(v1.Id, v2.Id)
+	suite.Equal(v1.Id, v3.Id)
+	suite.Equal(v1.CreatedAt, v2.CreatedAt)
+	suite.Equal(v1.CreatedAt, v3.CreatedAt)
+}
+
+func (suite *ContactStoreTestSuite) TestUpsert_ConcurrentOperations() {
+	contact := newContact(1)
+
+	var wg sync.WaitGroup
+	results := make([]bool, 5)
+	errors := make([]error, 5)
+
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			_, isInsert, err := suite.repo.Upsert(suite.ctx, contact)
+			results[idx] = isInsert
+			errors[idx] = err
+		}(i)
+	}
+
+	wg.Wait()
+
+	for i, err := range errors {
+		suite.NoError(err, "Operation %d should not error", i)
+	}
+
+	insertCount := 0
+	for _, isInsert := range results {
+		if isInsert {
+			insertCount++
+		}
+	}
+	suite.Equal(1, insertCount, "Exactly one operation should be insert")
 }
 
 //#endregion
