@@ -63,18 +63,16 @@ func (c *ContactService) SearchContact(ctx context.Context, request *impb.Search
 		Size:     request.GetSize(),
 		Contacts: make([]*impb.Contact, 0, len(contacts)),
 	}
+
 	if len(contacts) > int(request.GetSize()) {
 		result.Next = true
 		contacts = contacts[:request.GetSize()-1]
 	}
 
-	for _, contact := range contacts {
-		marshaledContact, err := mapper.MarshalContact(contact)
-		if err != nil {
-			return nil, err
-		}
-		result.Contacts = append(result.Contacts, marshaledContact)
-	}
+	result.Contacts = utils.Map(contacts, func(contact *model.Contact) *impb.Contact {
+		marshaledContact, _ := mapper.MarshalContact(contact)
+		return marshaledContact
+	})
 
 	return result, nil
 }
@@ -150,4 +148,28 @@ func (c *ContactService) CanSend(ctx context.Context, request *impb.CanSendReque
 	}
 
 	return &impb.CanSendResponse{Can: true}, nil
+}
+
+func (c *ContactService) Upsert(ctx context.Context, req *impb.CreateContactRequest) (*impb.Contact, error) {
+	var (
+		contact = &model.Contact{
+			BaseModel: model.BaseModel{
+				DomainId: int(req.GetDomainId()),
+			},
+			IssuerId:  req.GetIssId(),
+		ApplicationId: req.GetAppId(),
+		Type:          req.GetType(),
+		Name:          req.GetName(),
+		Username:      req.GetUsername(),
+		Metadata:      req.GetMetadata(),
+		SubjectId:     req.GetSubject(),
+		}
+		err error
+	)	
+
+	if contact, err = c.handler.Upsert(ctx, contact); err != nil {
+		return nil, err
+	}
+	
+	return mapper.MarshalContact(contact)
 }

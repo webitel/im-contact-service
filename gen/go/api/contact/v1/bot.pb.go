@@ -7,6 +7,7 @@
 package contact
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -853,7 +854,6 @@ func file_shared_contact_v1_bot_proto_init() {
 	if File_shared_contact_v1_bot_proto != nil {
 		return
 	}
-	file_buf_validate_validate_proto_init()
 	if !protoimpl.UnsafeEnabled {
 		file_shared_contact_v1_bot_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*WebitelBot); i {

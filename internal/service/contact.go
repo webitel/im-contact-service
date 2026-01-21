@@ -19,6 +19,7 @@ type Contacter interface {
 	Update(ctx context.Context, input *dto.UpdateContactCommand) (*model.Contact, error)
 	Delete(ctx context.Context, input *dto.DeleteContactCommand) error
 	CanSend(ctx context.Context, query *dto.CanSendQuery) error
+	Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, error)
 }
 
 var (
@@ -78,6 +79,32 @@ func (s *ContactService) Create(ctx context.Context, input *model.Contact) (*mod
 	}
 
 	return out, nil
+}
+
+// Upsert persists a new contact and publishes a ContactCreatedEvent or updates an existing contact and publishes a ContactUpdatedEvent.
+func (s *ContactService) Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, error) {
+	if err := s.validateCreate(contact); err != nil {
+		return nil, err
+	}
+
+	contact, isInsert, err := s.store.Upsert(ctx, contact)
+	if err != nil {
+		return nil, err
+	}
+
+	if isInsert {
+		event := events.NewContactCreated(contact)
+		if err := s.publisher.Publish(ctx, event); err != nil {
+			return contact, err
+		}
+	} else {
+		event := events.NewContactUpdated(contact)
+		if err := s.publisher.Publish(ctx, event); err != nil {
+			return contact, err
+		}
+	}
+
+	return contact, nil
 }
 
 // Update modifies an existing contact and publishes a ContactUpdatedEvent.

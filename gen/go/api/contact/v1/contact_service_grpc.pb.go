@@ -24,6 +24,7 @@ const (
 	Contacts_UpdateContact_FullMethodName = "/webitel.im.internal.contact.v1.Contacts/UpdateContact"
 	Contacts_DeleteContact_FullMethodName = "/webitel.im.internal.contact.v1.Contacts/DeleteContact"
 	Contacts_CanSend_FullMethodName       = "/webitel.im.internal.contact.v1.Contacts/CanSend"
+	Contacts_Upsert_FullMethodName        = "/webitel.im.internal.contact.v1.Contacts/Upsert"
 )
 
 // ContactsClient is the client API for Contacts service.
@@ -35,6 +36,7 @@ type ContactsClient interface {
 	UpdateContact(ctx context.Context, in *UpdateContactRequest, opts ...grpc.CallOption) (*Contact, error)
 	DeleteContact(ctx context.Context, in *DeleteContactRequest, opts ...grpc.CallOption) (*Contact, error)
 	CanSend(ctx context.Context, in *CanSendRequest, opts ...grpc.CallOption) (*CanSendResponse, error)
+	Upsert(ctx context.Context, in *CreateContactRequest, opts ...grpc.CallOption) (*Contact, error)
 }
 
 type contactsClient struct {
@@ -95,6 +97,16 @@ func (c *contactsClient) CanSend(ctx context.Context, in *CanSendRequest, opts .
 	return out, nil
 }
 
+func (c *contactsClient) Upsert(ctx context.Context, in *CreateContactRequest, opts ...grpc.CallOption) (*Contact, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Contact)
+	err := c.cc.Invoke(ctx, Contacts_Upsert_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ContactsServer is the server API for Contacts service.
 // All implementations must embed UnimplementedContactsServer
 // for forward compatibility.
@@ -104,6 +116,7 @@ type ContactsServer interface {
 	UpdateContact(context.Context, *UpdateContactRequest) (*Contact, error)
 	DeleteContact(context.Context, *DeleteContactRequest) (*Contact, error)
 	CanSend(context.Context, *CanSendRequest) (*CanSendResponse, error)
+	Upsert(context.Context, *CreateContactRequest) (*Contact, error)
 	mustEmbedUnimplementedContactsServer()
 }
 
@@ -128,6 +141,9 @@ func (UnimplementedContactsServer) DeleteContact(context.Context, *DeleteContact
 }
 func (UnimplementedContactsServer) CanSend(context.Context, *CanSendRequest) (*CanSendResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CanSend not implemented")
+}
+func (UnimplementedContactsServer) Upsert(context.Context, *CreateContactRequest) (*Contact, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Upsert not implemented")
 }
 func (UnimplementedContactsServer) mustEmbedUnimplementedContactsServer() {}
 func (UnimplementedContactsServer) testEmbeddedByValue()                  {}
@@ -240,6 +256,24 @@ func _Contacts_CanSend_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Contacts_Upsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateContactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContactsServer).Upsert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Contacts_Upsert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContactsServer).Upsert(ctx, req.(*CreateContactRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Contacts_ServiceDesc is the grpc.ServiceDesc for Contacts service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -266,6 +300,10 @@ var Contacts_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CanSend",
 			Handler:    _Contacts_CanSend_Handler,
+		},
+		{
+			MethodName: "Upsert",
+			Handler:    _Contacts_Upsert_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
