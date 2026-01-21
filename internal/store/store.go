@@ -17,11 +17,4 @@ type (
 		ClearByDomain(ctx context.Context, domainId int) error
 		Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, bool, error)
 	}
-
-	BotStore interface {
-		Create(ctx context.Context, bot *model.WebitelBot) (*model.WebitelBot, error)
-		Search(ctx context.Context, filter *dto.SearchBotRequest) ([]*model.WebitelBot, error)
-		Update(ctx context.Context, updateCmd *dto.UpdateBotCommand) (*model.WebitelBot, error)
-		Delete(ctx context.Context, deleteCmd *dto.DeleteBotCommand) error		
-	}
 )

@@ -10,11 +10,9 @@ import (
 var Module = fx.Module("grpc",
 	fx.Provide(
 		NewContactService,
-		NewBotsService,
 	),
 	fx.Invoke(
-		RegisterContactService,
-		RegisterBotService,
+		RegisterContactService,		
 	),
 )
 
@@ -23,7 +21,3 @@ func RegisterContactService(server *grpcsrv.Server, service *ContactService, lc 
 	return nil
 }
 
-func RegisterBotService(server *grpcsrv.Server, service *BotsServer, lc fx.Lifecycle) error {
-	impb.RegisterBotsServer(server.Server, service)
-	return nil
-}
