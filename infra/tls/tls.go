@@ -29,7 +29,7 @@ func ProvideTLSConfig(cfg *config.Config) (*Config, error) {
 	)
 
 	if !connConfig.VerifyCerts {
-		authType = tls.NoClientCert
+		return conf, nil
 	}
 
 	conf.Server, err = Load(connConfig.TLSConfig, authType)

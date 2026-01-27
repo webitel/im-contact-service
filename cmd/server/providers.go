@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/webitel/im-contact-service/infra/db/pg"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.38.0"
@@ -216,4 +217,20 @@ func ProvideSD(cfg *config.Config, log *slog.Logger, lc fx.Lifecycle) (discovery
 	})
 
 	return provider, nil
+}
+
+func ProvideNewDBConnection(cfg *config.Config, l *slog.Logger, lc fx.Lifecycle) (*pg.PgxDB, error) {
+	db, err := pg.New(context.Background(), l, cfg.Postgres.DSN)
+	if err != nil {
+		return nil, err
+	}
+
+	lc.Append(fx.Hook{
+		OnStop: func(ctx context.Context) error {
+			db.Master().Close()
+			return nil
+		},
+	})
+
+	return db, err
 }

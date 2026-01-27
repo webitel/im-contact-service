@@ -23,6 +23,7 @@ func MainModule(cfg *config.Config) fx.Option {
 			func() *config.Config { return cfg },
 			ProvideLogger,
 			ProvideSD,
+			ProvideNewDBConnection,
 		),
 		fx.Invoke(func(discovery discovery.DiscoveryProvider) error { return nil }),
 		tls.Module,
