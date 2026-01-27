@@ -7,8 +7,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/message"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.38.0"
@@ -18,10 +16,6 @@ import (
 	otelsdk "github.com/webitel/webitel-go-kit/infra/otel/sdk"
 
 	"github.com/webitel/im-contact-service/config"
-	"github.com/webitel/im-contact-service/infra/db/pg"
-	"github.com/webitel/im-contact-service/infra/pubsub"
-	"github.com/webitel/im-contact-service/infra/pubsub/factory"
-	"github.com/webitel/im-contact-service/infra/pubsub/factory/amqp"
 	"github.com/webitel/im-contact-service/internal/domain/model"
 
 	_ "github.com/webitel/webitel-go-kit/infra/discovery/consul"
@@ -180,22 +174,6 @@ func (h *multiHandler) WithGroup(name string) slog.Handler {
 	return &multiHandler{handlers: newHandlers}
 }
 
-func ProvideNewDBConnection(cfg *config.Config, l *slog.Logger, lc fx.Lifecycle) (*pg.PgxDB, error) {
-	db, err := pg.New(context.Background(), l, cfg.Postgres.DSN)
-	if err != nil {
-		return nil, err
-	}
-
-	lc.Append(fx.Hook{
-		OnStop: func(ctx context.Context) error {
-			db.Master().Close()
-			return nil
-		},
-	})
-
-	return db, err
-}
-
 func ProvideSD(cfg *config.Config, log *slog.Logger, lc fx.Lifecycle) (discovery.DiscoveryProvider, error) {
 	provider, err := discovery.DefaultFactory.CreateProvider(
 		discovery.ProviderConsul,
@@ -238,39 +216,4 @@ func ProvideSD(cfg *config.Config, log *slog.Logger, lc fx.Lifecycle) (discovery
 	})
 
 	return provider, nil
-}
-
-func ProvidePubSub(cfg *config.Config, l *slog.Logger, lc fx.Lifecycle) (pubsub.Provider, error) {
-	var (
-		pubsubConfig  = cfg.Pubsub
-		loggerAdapter = watermill.NewSlogLogger(l)
-		pubsubFactory factory.Factory
-		err           error
-	)
-
-	switch pubsubConfig.Driver {
-	default:
-		pubsubFactory, err = amqp.NewFactory(pubsubConfig.URL, loggerAdapter)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	router, err := message.NewRouter(message.RouterConfig{}, loggerAdapter)
-	if err != nil {
-		return nil, err
-	}
-	lc.Append(fx.Hook{
-		OnStop: func(ctx context.Context) error {
-			return router.Close()
-		},
-		OnStart: func(ctx context.Context) error {
-			go func() error {
-				return router.Run(ctx)
-			}()
-			return nil
-		},
-	})
-
-	return pubsub.NewDefaultProvider(router, pubsubFactory)
 }

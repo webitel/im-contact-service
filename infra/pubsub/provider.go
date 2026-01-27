@@ -1,15 +1,63 @@
 package pubsub
 
 import (
+	"context"
 	"errors"
+	"log/slog"
 
+	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/webitel/im-contact-service/config"
 	"github.com/webitel/im-contact-service/infra/pubsub/factory"
+	"github.com/webitel/im-contact-service/infra/pubsub/factory/amqp"
+	"go.uber.org/fx"
 )
 
 type Provider interface {
 	GetRouter() *message.Router
 	GetFactory() factory.Factory
+}
+
+var Module = fx.Module("pubsub",
+	fx.Provide(
+		fx.Annotate(
+			ProvidePubSub,
+		),
+	),
+)
+
+func ProvidePubSub(cfg *config.Config, l *slog.Logger, lc fx.Lifecycle) (Provider, error) {
+	var (
+		pubsubConfig  = cfg.Pubsub
+		loggerAdapter = watermill.NewSlogLogger(l)
+		pubsubFactory factory.Factory
+		err           error
+	)
+
+	switch pubsubConfig.Driver {
+	case "amqp":
+		pubsubFactory, err = amqp.NewFactory(pubsubConfig.URL, loggerAdapter)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, errors.New("pubsub driver not supported")
+	}
+
+	router, err := message.NewRouter(message.RouterConfig{}, loggerAdapter)
+	if err != nil {
+		return nil, err
+	}
+	lc.Append(fx.Hook{
+		OnStop: func(ctx context.Context) error {
+			return router.Close()
+		},
+		OnStart: func(ctx context.Context) error {
+			return router.Run(ctx)
+		},
+	})
+
+	return NewDefaultProvider(router, pubsubFactory)
 }
 
 type DefaultProvider struct {
