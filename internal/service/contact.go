@@ -9,6 +9,7 @@ import (
 	"github.com/webitel/im-contact-service/internal/handler/amqp"
 	"github.com/webitel/im-contact-service/internal/service/dto"
 	"github.com/webitel/im-contact-service/internal/store"
+	"github.com/webitel/im-contact-service/internal/store/queries"
 	"github.com/webitel/webitel-go-kit/pkg/errors"
 )
 
@@ -20,6 +21,7 @@ type Contacter interface {
 	Delete(ctx context.Context, input *dto.DeleteContactCommand) error
 	CanSend(ctx context.Context, query *dto.CanSendQuery) error
 	Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, error)
+	PartialUpdate(ctx context.Context, cmd *dto.PartialUpdateContactCommand) (*model.Contact, error)
 }
 
 var (
@@ -175,6 +177,34 @@ func (s *ContactService) DeleteByDomain(ctx context.Context, domainId int) error
 		return err
 	}
 	return nil
+}
+
+func (s *ContactService) PartialUpdate(ctx context.Context, cmd *dto.PartialUpdateContactCommand) (*model.Contact, error) {
+	if cmd.ID == uuid.Nil || cmd.DomainID <= 0 {
+		return nil, errors.InvalidArgument("ID and DomainID are required fields!")
+	}
+
+	query := queries.NewContactUpdateQuery().WithDomainIDFilter(cmd.DomainID).WithIDFilter(cmd.ID)
+
+	for _, field := range cmd.Fields {
+	switch field {
+	case "name":
+		query.WithName(cmd.Name)
+	case "username":
+		query.WithUsername(cmd.Username)
+	case "metadata":
+		query.WithMetadata(cmd.MD)
+	case "subject":
+		query.WithSubject(cmd.Sub)
+	}
+	}
+	
+	contact, err := s.store.PartialUpdate(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	return contact, nil
 }
 
 // validateCreate performs business rules validation for new contacts.

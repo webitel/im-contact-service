@@ -5,6 +5,7 @@ import (
 
 	"github.com/webitel/im-contact-service/internal/domain/model"
 	"github.com/webitel/im-contact-service/internal/service/dto"
+	"github.com/webitel/im-contact-service/internal/store/queries"
 )
 
 type (
@@ -16,5 +17,6 @@ type (
 		Delete(ctx context.Context, command *dto.DeleteContactCommand) error
 		ClearByDomain(ctx context.Context, domainId int) error
 		Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, bool, error)
+		PartialUpdate(ctx context.Context, query queries.Query) (*model.Contact, error)
 	}
 )

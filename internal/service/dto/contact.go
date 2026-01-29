@@ -29,10 +29,20 @@ type (
 		Subject  string            `json:"subject"`
 	}
 
+	PartialUpdateContactCommand struct {
+		ID       uuid.UUID         `json:"id"`
+		DomainID int               `json:"domain_id"`
+		Name     string            `json:"name"`
+		Username string            `json:"username"`
+		MD       map[string]string `json:"md"`
+		Sub      string            `json:"sub"`
+		Fields []string
+	}
+
 	CanSendQuery struct {
 		DomainId int
-		From model.Peer `json:"from"`
-		To   model.Peer `json:"to"`
+		From     model.Peer `json:"from"`
+		To       model.Peer `json:"to"`
 	}
 
 	DeleteContactCommand struct {

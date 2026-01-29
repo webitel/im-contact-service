@@ -22,6 +22,7 @@ func MarshalContact(contact *model.Contact) (*impb.Contact, error) {
 		CreatedAt: contact.CreatedAt.UnixMilli(),
 		UpdatedAt: contact.UpdatedAt.UnixMilli(),
 		Subject: contact.SubjectId,
+		DomainId: int32(contact.DomainId),
 	}, nil
 }
 
@@ -43,4 +44,18 @@ func CanSendRequest2Model(request *impb.CanSendRequest) *dto.CanSendQuery {
 	}
 
 	return canSendQuery
+}
+
+func MapPatchContactRequestToPartialUpdateContactCommand(request *impb.PatchContactRequest) *dto.PartialUpdateContactCommand {
+	id, _ := uuid.Parse(request.Id)
+	
+	return &dto.PartialUpdateContactCommand{
+		ID: id,
+		DomainID: int(request.DomainId),
+		Name: request.Name,
+		Username: request.Username,
+		MD: request.Metadata,
+		Sub: request.Subject,
+		Fields: request.FieldMask.Paths,
+	}
 }
