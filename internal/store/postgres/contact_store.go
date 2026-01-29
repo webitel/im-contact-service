@@ -113,14 +113,14 @@ func (c *contactStore) Search(ctx context.Context, filter *dto.ContactSearchFilt
 
 		args = pgx.NamedArgs{
 			"domain_id": filter.DomainId,
-			"ids":       filter.Ids,
+			"ids":       arrayOrNull(filter.Ids),
 			"Q":         filter.Q,
-			"apps":      filter.Apps,
-			"issuers":   filter.Issuers,
-			"types":     filter.Types,
+			"apps":      arrayOrNull(filter.Apps),
+			"issuers":   arrayOrNull(filter.Issuers),
+			"types":     arrayOrNull(filter.Types),
 			"limit":     limit + 1,
 			"offset":    offset,
-			"subjects":  filter.Subjects,
+			"subjects":  arrayOrNull(filter.Subjects),
 		}
 		contacts []*model.Contact
 	)
@@ -129,6 +129,13 @@ func (c *contactStore) Search(ctx context.Context, filter *dto.ContactSearchFilt
 		return nil, fmt.Errorf("error search contacts: %v", err)
 	}
 	return contacts, nil
+}
+
+func arrayOrNull[T any](v []T) any {
+	if len(v) > 0 {
+		return v
+	}
+	return nil
 }
 
 // Update implements [store.ContactStore].
