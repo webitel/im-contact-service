@@ -3,7 +3,8 @@
 service:
   id: "webitel-service-01"
   addr: "localhost:10155"
-  secret: "your-very-secure-secret-key"
+  conn:
+    verify_certs: false
 
 
 log:

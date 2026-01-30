@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/webitel/im-contact-service/internal/domain/events"
 	"github.com/webitel/im-contact-service/internal/domain/model"
+	"github.com/webitel/im-contact-service/internal/handler/amqp"
 	"github.com/webitel/im-contact-service/internal/service/dto"
 	"github.com/webitel/im-contact-service/internal/store"
 	"github.com/webitel/webitel-go-kit/pkg/errors"
@@ -17,8 +18,14 @@ type Contacter interface {
 	Create(ctx context.Context, input *model.Contact) (*model.Contact, error)
 	Update(ctx context.Context, input *dto.UpdateContactCommand) (*model.Contact, error)
 	Delete(ctx context.Context, input *dto.DeleteContactCommand) error
-	CanSend(ctx context.Context, query *dto.CanSendQuery) (bool, error)
+	CanSend(ctx context.Context, query *dto.CanSendQuery) error
+	Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, error)
 }
+
+var (
+	_ Contacter                      = &ContactService{}
+	_ amqp.DomainDeletedEventHandler = &ContactService{}
+)
 
 // EventPublisher defines the contract for publishing domain events.
 // Note: We removed the 'topic string' argument because the event knows its own topic.
@@ -32,7 +39,7 @@ type ContactService struct {
 }
 
 // NewContactService creates a new ContactService instance.
-func NewContactService(store store.ContactStore, publisher EventPublisher) Contacter {
+func NewContactService(store store.ContactStore, publisher EventPublisher) *ContactService {
 	return &ContactService{
 		store:     store,
 		publisher: publisher,
@@ -53,6 +60,12 @@ func (s *ContactService) Create(ctx context.Context, input *model.Contact) (*mod
 		return nil, err
 	}
 
+	// TODO
+	// appClient.ValidateApplicationAccess(ctx, input.ApplicationId, input.IssuerId)
+
+	// TODO
+	// issuer + subject uniqueness check ; if exists -> update instead of create
+
 	out, err := s.store.Create(ctx, input)
 	if err != nil {
 		return nil, err
@@ -64,6 +77,32 @@ func (s *ContactService) Create(ctx context.Context, input *model.Contact) (*mod
 	}
 
 	return out, nil
+}
+
+// Upsert persists a new contact and publishes a ContactCreatedEvent or updates an existing contact and publishes a ContactUpdatedEvent.
+func (s *ContactService) Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, error) {
+	if err := s.validateCreate(contact); err != nil {
+		return nil, err
+	}
+
+	contact, isInsert, err := s.store.Upsert(ctx, contact)
+	if err != nil {
+		return nil, err
+	}
+
+	if isInsert {
+		event := events.NewContactCreated(contact)
+		if err := s.publisher.Publish(ctx, event); err != nil {
+			return contact, err
+		}
+	} else {
+		event := events.NewContactUpdated(contact)
+		if err := s.publisher.Publish(ctx, event); err != nil {
+			return contact, err
+		}
+	}
+
+	return contact, nil
 }
 
 // Update modifies an existing contact and publishes a ContactUpdatedEvent.
@@ -103,13 +142,39 @@ func (s *ContactService) Delete(ctx context.Context, input *dto.DeleteContactCom
 }
 
 // CanSend checks if a message can be sent to/from a contact.
-func (s *ContactService) CanSend(ctx context.Context, query *dto.CanSendQuery) (bool, error) {
+func (s *ContactService) CanSend(ctx context.Context, query *dto.CanSendQuery) error {
 	if query == nil {
-		return false, errors.InvalidArgument("query is required")
+		return errors.InvalidArgument("query is required")
 	}
 
-	// FIXME mocked for now, implement actual logic later
-	return false, nil
+	usersPeers, err := s.store.Search(ctx, &dto.ContactSearchFilter{Ids: []uuid.UUID{query.From.Id, query.To.Id}, DomainId: query.DomainId})
+	if err != nil {
+		return err
+	}
+
+
+	switch (len(usersPeers)) {
+	case 0:
+		return errors.NotFound("no contacts found for the provided IDs")
+	case 1:
+		if query.From != query.To {
+			return errors.NotFound("no contacts found for the provided IDs")
+		}
+	case 2:
+		return nil
+	default:
+		return errors.InvalidArgument("too many contacts found for the provided IDs")
+	}
+
+	return nil
+}
+
+func (s *ContactService) DeleteByDomain(ctx context.Context, domainId int) error {
+	err := s.store.ClearByDomain(ctx, domainId)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // validateCreate performs business rules validation for new contacts.
@@ -117,9 +182,11 @@ func (s *ContactService) validateCreate(input *model.Contact) error {
 	if input == nil {
 		return errors.InvalidArgument("input is nil")
 	}
+
 	if input.Username == "" {
 		return errors.InvalidArgument("username is required")
 	}
+
 	if input.IssuerId == "" {
 		return errors.InvalidArgument("issuerId is required")
 	}

@@ -2,7 +2,7 @@
 
 set -e
 
-SERVICE_NAME="im-contact-service"
+SERVICE_NAME="webitel-im-contact"
 
 USER_NAME="webitel"
 GROUP_NAME="webitel"

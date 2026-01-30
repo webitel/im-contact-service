@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"log"
-	"log/slog"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
@@ -21,9 +20,22 @@ type Config struct {
 }
 
 type ServiceConfig struct {
-	Id        string `mapstructure:"id"`
-	Address   string `mapstructure:"addr"`
-	SecretKey string `mapstructure:"secret"`
+	Id         string           `mapstructure:"id"`
+	Address    string           `mapstructure:"addr"`
+	Connection ConnectionConfig `mapstructure:"conn"`
+}
+
+type ConnectionConfig struct {
+	TLSConfig
+
+	VerifyCerts bool      `mapstructure:"verify_certs"`
+	Client      TLSConfig `mapstructure:"client"`
+}
+
+type TLSConfig struct {
+	CA   string `mapstructure:"ca"`
+	Cert string `mapstructure:"cert"`
+	Key  string `mapstructure:"key"`
 }
 
 type LogConfig struct {
@@ -76,18 +88,16 @@ func LoadConfig() (*Config, error) {
 		}
 
 		viper.OnConfigChange(func(e fsnotify.Event) {
-			slog.Warn("Config file changed: %s", e.Name)
+			log.Printf("Config file changed: %s", e.Name)
 
 			newCfg := &Config{}
 			if err := viper.Unmarshal(newCfg); err != nil {
-				slog.Warn("Reload error: unable to decode: %v", err)
-
+				log.Printf("Reload error: unable to decode: %v", err)
 				return
 			}
 
 			if err := newCfg.validate(); err != nil {
-				slog.Warn("Reload error: invalid config: %v", err)
-
+				log.Printf("Reload error: invalid config: %v", err)
 				return
 			}
 
@@ -123,6 +133,9 @@ func defineFlags() {
 	pflag.String("redis.addr", "localhost:6379", "Redis address")
 	pflag.String("consul.addr", "localhost:8500", "Consul address")
 	pflag.String("pubsub.broker_url", "", "PubSub broker URL")
+	pflag.String("pubsub.broker_driver", "amqp", "PubSub broker driver")
+
+	defineConnectionFlags()
 }
 
 func (c *Config) validate() error {
@@ -132,6 +145,11 @@ func (c *Config) validate() error {
 
 	if c.Service.Address == "" {
 		return fmt.Errorf("config: service.addr is required")
+	}
+
+	err := validateConnectionConfig(c.Service.Connection)
+	if err != nil {
+		return err
 	}
 
 	if c.Log.Level == "" {
@@ -158,5 +176,31 @@ func (c *Config) validate() error {
 		return fmt.Errorf("config: pubsub.broker_url must start with amqp:// or amqps://")
 	}
 
+	return nil
+}
+
+func validateConnectionConfig(conn ConnectionConfig) error {
+	if conn.VerifyCerts {
+		if conn.CA == "" {
+			return fmt.Errorf("config: service.conn.ca is required when verify_certs is true")
+		}
+		if conn.Cert == "" {
+			return fmt.Errorf("config: service.conn.cert is required when verify_certs is true")
+		}
+		if conn.Key == "" {
+			return fmt.Errorf("config: service.conn.key is required when verify_certs is true")
+		}
+	}
+	return nil
+}
+
+func defineConnectionFlags() error {
+	pflag.String("service.conn.verify_certs", "true", "Determine whether to verify certificates (false only for development)")
+	pflag.String("service.conn.ca", "", "Server CA certificate path")
+	pflag.String("service.conn.key", "", "Server certificate key path")
+	pflag.String("service.conn.cert", "", "Server certificate path")
+	pflag.String("service.conn.client.ca", "", "Client CA certificate path")
+	pflag.String("service.conn.client.key", "", "Client certificate key path")
+	pflag.String("service.conn.client.cert", "", "Client certificate path")
 	return nil
 }

@@ -1,25 +1,32 @@
 package service
 
 import (
+	pubsubadapter "github.com/webitel/im-contact-service/internal/adapter/pubsub"
+	"github.com/webitel/im-contact-service/internal/handler/amqp"
 	"go.uber.org/fx"
-
-	"github.com/webitel/im-contact-service/internal/adapter/pubsub"
 )
 
 var Module = fx.Module("service",
-	fx.Provide(
-		pubsub.NewPublisherProvider,
-		func(pp *pubsub.PublisherProvider) (EventPublisher, error) {
-			// pp.Build return low level message.Publisher (Watermill)
-			wmPub, err := pp.Build("im.contacts")
-			if err != nil {
-				return nil, err
-			}
-			return pubsub.NewEventDispatcher(wmPub), nil
-		},
-		fx.Annotate(
-			NewContactService,
-			fx.As(new(Contacter)),
-		),
-	),
+    fx.Provide(
+        pubsubadapter.NewPublisherProvider,
+        func(pp *pubsubadapter.PublisherProvider) (EventPublisher, error) {
+            wmPub, err := pp.Build("im.contacts")
+            if err != nil {
+                return nil, err
+            }
+            return pubsubadapter.NewEventDispatcher(wmPub), nil
+        },
+
+        pubsubadapter.NewSubscriberProvider,
+        amqp.NewMessageHandler,
+        amqp.NewWatermillRouter,
+
+        fx.Annotate(
+            NewContactService,
+            fx.As(new(Contacter)),
+            fx.As(new(amqp.DomainDeletedEventHandler)),
+        ),
+    ),
+
+    fx.Invoke(amqp.RegisterHandlers),
 )

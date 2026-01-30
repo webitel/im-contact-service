@@ -15,5 +15,6 @@ type (
 		Update(ctx context.Context, updater *dto.UpdateContactCommand) (*model.Contact, error)
 		Delete(ctx context.Context, command *dto.DeleteContactCommand) error
 		ClearByDomain(ctx context.Context, domainId int) error
+		Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, bool, error)
 	}
 )

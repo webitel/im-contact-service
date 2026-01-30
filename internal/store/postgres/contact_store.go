@@ -95,7 +95,7 @@ func (c *contactStore) Search(ctx context.Context, filter *dto.ContactSearchFilt
 
 	sortClause := store.ValidateAndFormatSort(filter.Sort, model.ContactAllowedFields())
 	limit := max(filter.Size, 1)
-	offset := (filter.Page - 1) * filter.Size
+	offset := max((filter.Page-1)*filter.Size, 0)
 
 	var (
 		query = fmt.Sprintf(`
@@ -107,18 +107,20 @@ func (c *contactStore) Search(ctx context.Context, filter *dto.ContactSearchFilt
             AND (@apps::text[] IS NULL OR application_id = ANY(@apps::text[]))
             AND (@issuers::text[] IS NULL OR issuer_id = ANY(@issuers::text[]))
             AND (@types::text[] IS NULL OR type = ANY(@types::text[]))
+			and (@subjects::text[] is null or subject_id = any(@subjects::text[]))
         ORDER BY %s
         LIMIT @limit OFFSET @offset`, selectFields, sortClause)
 
 		args = pgx.NamedArgs{
 			"domain_id": filter.DomainId,
-			"ids":       filter.Ids,
+			"ids":       arrayOrNull(filter.Ids),
 			"Q":         filter.Q,
-			"apps":      filter.Apps,
-			"issuers":   filter.Issuers,
-			"types":     filter.Types,
+			"apps":      arrayOrNull(filter.Apps),
+			"issuers":   arrayOrNull(filter.Issuers),
+			"types":     arrayOrNull(filter.Types),
 			"limit":     limit + 1,
 			"offset":    offset,
+			"subjects":  arrayOrNull(filter.Subjects),
 		}
 		contacts []*model.Contact
 	)
@@ -127,6 +129,13 @@ func (c *contactStore) Search(ctx context.Context, filter *dto.ContactSearchFilt
 		return nil, fmt.Errorf("error search contacts: %v", err)
 	}
 	return contacts, nil
+}
+
+func arrayOrNull[T any](v []T) any {
+	if len(v) > 0 {
+		return v
+	}
+	return nil
 }
 
 // Update implements [store.ContactStore].
@@ -138,6 +147,7 @@ func (c *contactStore) Update(ctx context.Context, updater *dto.UpdateContactCom
 				name = coalesce(@name, name),
 				username = coalesce(@username, username),
 				metadata = coalesce(@metadata, metadata),
+				subject_id = coalesce(@subject, subject_id),
 				updated_at = now()
 			where domain_id = @domain_id
 				and id = @id
@@ -150,6 +160,7 @@ func (c *contactStore) Update(ctx context.Context, updater *dto.UpdateContactCom
 			"name":      updater.Name,
 			"username":  updater.Username,
 			"metadata":  updater.Metadata,
+			"subject":   updater.Subject,
 		}
 		result model.Contact
 	)
@@ -175,4 +186,75 @@ func (c *contactStore) ClearByDomain(ctx context.Context, domainId int) error {
 		return fmt.Errorf("contactStore.ClearByDomain (id = %d): %w", domainId, err)
 	}
 	return nil
+}
+
+
+func (c *contactStore) Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, bool, error) {
+	var (
+		query = `
+			insert into im_contact.contact(
+				domain_id,
+				issuer_id,
+				subject_id,
+				application_id,
+				type,
+				name,
+				username,
+				metadata
+			) values (
+				@DomainId, @IssuerId, @SubjectId, @ApplicationId, @Type,
+				@Name, @Username, @Metadata 
+			)
+			on conflict (domain_id, issuer_id, subject_id)
+			do update set
+				updated_at = now(),
+				name = excluded.name,
+				username = excluded.username,
+				metadata = excluded.metadata
+			returning
+				id,
+				domain_id,
+				created_at,
+				updated_at,
+				issuer_id,
+				application_id,
+				subject_id,
+				type,
+				name,
+				username,
+				metadata,
+				(xmax = 0) as is_insert
+		`
+		args = pgx.NamedArgs{
+			"DomainId": contact.DomainId,
+			"IssuerId": contact.IssuerId,
+			"SubjectId": contact.SubjectId,
+			"ApplicationId": contact.ApplicationId,
+			"Type": contact.Type,
+			"Name": contact.Name,
+			"Username": contact.Username,
+			"Metadata": contact.Metadata,
+		}
+		result model.Contact
+		isInsert bool 
+	)
+
+	if err := c.db.Master().QueryRow(ctx, query, args).Scan(
+		&result.Id,
+		&result.DomainId,
+		&result.CreatedAt,
+		&result.UpdatedAt,
+		&result.IssuerId,
+		&result.ApplicationId,
+		&result.SubjectId,
+		&result.Type,
+		&result.Name,
+		&result.Username,
+		&result.Metadata,
+		&isInsert,
+	); err != nil {
+		return nil, false, err
+	}
+
+	return &result, isInsert, nil
 }
