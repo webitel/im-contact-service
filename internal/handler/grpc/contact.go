@@ -39,19 +39,20 @@ func (c *ContactService) SearchContact(ctx context.Context, request *impb.Search
 
 		return parsed
 	})
-	
+	page, size := ParsePagination(request.GetPage(), request.GetSize())
+
 	contacts, err := c.handler.Search(ctx, &dto.ContactSearchFilter{
-		Page:    request.GetPage(),
-		Size:    request.GetSize(),
-		Q:       &request.Q,
-		Sort:    request.GetSort(),
-		Fields:  request.GetFields(),
-		Apps:    request.GetAppId(),
-		Issuers: request.GetIssId(),
-		Types:   request.GetType(),
+		Page:     page,
+		Size:     size + 1,
+		Q:        &request.Q,
+		Sort:     request.GetSort(),
+		Fields:   request.GetFields(),
+		Apps:     request.GetAppId(),
+		Issuers:  request.GetIssId(),
+		Types:    request.GetType(),
 		Subjects: request.GetSubjects(),
 		DomainId: int(request.GetDomainId()),
-		Ids: ids,
+		Ids:      ids,
 	})
 
 	if err != nil {
@@ -73,6 +74,7 @@ func (c *ContactService) SearchContact(ctx context.Context, request *impb.Search
 		marshaledContact, _ := mapper.MarshalContact(contact)
 		return marshaledContact
 	})
+	result.Contacts, result.Next = ResolvePaging(int(size), result.Contacts)
 
 	return result, nil
 }
@@ -84,7 +86,7 @@ func (c *ContactService) CreateContact(ctx context.Context, request *impb.Create
 		BaseModel: model.BaseModel{
 			CreatedAt: timeNow,
 			UpdatedAt: timeNow,
-			DomainId: int(request.GetDomainId()),
+			DomainId:  int(request.GetDomainId()),
 		},
 		IssuerId:      request.GetIssId(),
 		ApplicationId: request.GetAppId(),
@@ -92,7 +94,7 @@ func (c *ContactService) CreateContact(ctx context.Context, request *impb.Create
 		Name:          request.GetName(),
 		Username:      request.GetUsername(),
 		Metadata:      request.GetMetadata(),
-		SubjectId: request.GetSubject(),
+		SubjectId:     request.GetSubject(),
 	})
 	if err != nil {
 		return nil, err
@@ -112,7 +114,7 @@ func (c *ContactService) UpdateContact(ctx context.Context, request *impb.Update
 		Name:     &request.Name,
 		Username: &request.Username,
 		Metadata: request.GetMetadata(),
-		Subject: request.GetSubject(),
+		Subject:  request.GetSubject(),
 		DomainId: int(request.GetDomainId()),
 	})
 	if err != nil {
@@ -129,7 +131,7 @@ func (c *ContactService) DeleteContact(ctx context.Context, request *impb.Delete
 	}
 
 	err = c.handler.Delete(ctx, &dto.DeleteContactCommand{
-		Id: contactId,
+		Id:       contactId,
 		DomainId: int(request.GetDomainId()),
 	})
 	if err != nil {
@@ -156,20 +158,20 @@ func (c *ContactService) Upsert(ctx context.Context, req *impb.CreateContactRequ
 			BaseModel: model.BaseModel{
 				DomainId: int(req.GetDomainId()),
 			},
-			IssuerId:  req.GetIssId(),
-		ApplicationId: req.GetAppId(),
-		Type:          req.GetType(),
-		Name:          req.GetName(),
-		Username:      req.GetUsername(),
-		Metadata:      req.GetMetadata(),
-		SubjectId:     req.GetSubject(),
+			IssuerId:      req.GetIssId(),
+			ApplicationId: req.GetAppId(),
+			Type:          req.GetType(),
+			Name:          req.GetName(),
+			Username:      req.GetUsername(),
+			Metadata:      req.GetMetadata(),
+			SubjectId:     req.GetSubject(),
 		}
 		err error
-	)	
+	)
 
 	if contact, err = c.handler.Upsert(ctx, contact); err != nil {
 		return nil, err
 	}
-	
+
 	return mapper.MarshalContact(contact)
 }
