@@ -60,14 +60,9 @@ func (c *ContactService) SearchContact(ctx context.Context, request *impb.Search
 	}
 
 	result := &impb.ContactList{
-		Page:     request.GetPage(),
-		Size:     request.GetSize(),
+		Page:     page,
+		Size:     size,
 		Contacts: make([]*impb.Contact, 0, len(contacts)),
-	}
-
-	if len(contacts) > int(request.GetSize()) {
-		result.Next = true
-		contacts = contacts[:request.GetSize()-1]
 	}
 
 	result.Contacts = utils.Map(contacts, func(contact *model.Contact) *impb.Contact {
