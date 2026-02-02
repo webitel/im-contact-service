@@ -6,7 +6,7 @@ create table im_contact.contact (
     "created_at" timestamptz default now() not null,
     "updated_at" timestamptz default now() not null,
     "issuer_id" text not null,
-    "application_id" text not null,
+    "application_id" text,
     "subject_id" text not null,
     "type" text not null,
     "name" text not null default '',
