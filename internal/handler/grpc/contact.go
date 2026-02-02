@@ -175,3 +175,13 @@ func (c *ContactService) Upsert(ctx context.Context, req *impb.CreateContactRequ
 
 	return mapper.MarshalContact(contact)
 }
+
+func (c *ContactService) Patch(ctx context.Context, request *impb.PatchContactRequest) (*impb.Contact, error) {
+	contactPartialUpdateCmd := mapper.MapPatchContactRequestToPartialUpdateContactCommand(request)
+	contact, err := c.handler.PartialUpdate(ctx, contactPartialUpdateCmd)
+	if err != nil {
+		return nil, err
+	}
+
+	return mapper.MarshalContact(contact)
+}

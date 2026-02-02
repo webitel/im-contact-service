@@ -45,3 +45,5 @@ env
 debug
 /.idea
 deploy/docker/config/config.yaml
+.zed
+.vscode

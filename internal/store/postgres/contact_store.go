@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/webitel/im-contact-service/internal/domain/model"
 	"github.com/webitel/im-contact-service/internal/service/dto"
 	"github.com/webitel/im-contact-service/internal/store"
+	"github.com/webitel/im-contact-service/internal/store/queries"
 )
 
 var _ store.ContactStore = (*contactStore)(nil)
@@ -186,6 +188,29 @@ func (c *contactStore) ClearByDomain(ctx context.Context, domainId int) error {
 		return fmt.Errorf("contactStore.ClearByDomain (id = %d): %w", domainId, err)
 	}
 	return nil
+}
+
+func (c *contactStore) PartialUpdate(ctx context.Context, query queries.Query) (*model.Contact, error) {
+	sql, args, err := query.ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := c.db.Master().Query(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	contact, err := pgx.CollectOneRow(rows, pgx.RowToAddrOfStructByNameLax[model.Contact])
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrUpdatedContactNotFound
+		}
+
+		return nil, err
+	}
+
+	return contact, nil
 }
 
 
