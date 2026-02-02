@@ -28,5 +28,5 @@ func (c *Contact) Equal(compare *Contact) bool {
 
 func ContactAllowedFields() []string {
 	return []string{"issuer_id", "application_id", "type", "name", "username", "metadata",
-		"id", "domain_id", "created_by", "updated_by", "created_at", "updated_at"}
+		"id", "domain_id", "created_by", "updated_by", "created_at", "updated_at", "subject_id"}
 }
