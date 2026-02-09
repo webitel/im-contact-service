@@ -43,7 +43,7 @@ func (c *ContactService) SearchContact(ctx context.Context, request *impb.Search
 
 	contacts, err := c.handler.Search(ctx, &dto.ContactSearchFilter{
 		Page:     page,
-		Size:     size + 1,
+		Size:     size, // + 1,
 		Q:        &request.Q,
 		Sort:     request.GetSort(),
 		Fields:   request.GetFields(),
