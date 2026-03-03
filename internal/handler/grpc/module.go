@@ -12,7 +12,7 @@ var Module = fx.Module("grpc",
 		NewContactService,
 	),
 	fx.Invoke(
-		RegisterContactService,		
+		RegisterContactService,
 	),
 )
 
