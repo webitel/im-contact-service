@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
 	"github.com/webitel/im-contact-service/infra/db/pg"
 	"github.com/webitel/im-contact-service/internal/domain/model"
@@ -53,14 +52,19 @@ func (c *contactStore) Create(ctx context.Context, contact *model.Contact) (*mod
 			"username":       contact.Username,
 			"metadata":       contact.Metadata,
 		}
-		result model.Contact
+		result *model.Contact
 	)
 
-	if err := pgxscan.Get(ctx, c.db.Master(), &result, query, args); err != nil {
+	row, err := c.db.Master().Query(ctx, query, args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to create contact: %v", err)
 	}
 
-	return &result, nil
+	if result, err = pgx.CollectExactlyOneRow(row, pgx.RowToAddrOfStructByNameLax[model.Contact]); err != nil {
+		return nil, fmt.Errorf("failed to create contact: %v", err)
+	}
+	
+	return result, nil
 }
 
 // Delete implements [store.ContactStore].
@@ -90,9 +94,11 @@ func (c *contactStore) Search(ctx context.Context, filter *dto.ContactSearchFilt
 		filter.Q = nil
 	}
 
-	selectFields := "*"
+	selectFields := ""
 	if len(filter.Fields) > 0 {
 		selectFields = strings.Join(store.SanitizeFields(filter.Fields, model.ContactAllowedFields()), ",")
+	} else {
+		selectFields = strings.Join(model.ContactAllowedFields(), ",")
 	}
 
 	sortClause := store.ValidateAndFormatSort(filter.Sort, model.ContactAllowedFields())
@@ -127,9 +133,15 @@ func (c *contactStore) Search(ctx context.Context, filter *dto.ContactSearchFilt
 		contacts []*model.Contact
 	)
 
-	if err := pgxscan.Select(ctx, c.db.Master(), &contacts, query, args); err != nil {
+	rows, err := c.db.Master().Query(ctx, query, args)
+	if err != nil {
 		return nil, fmt.Errorf("error search contacts: %v", err)
 	}
+
+	if contacts, err = pgx.CollectRows(rows, pgx.RowToAddrOfStructByNameLax[model.Contact]); err != nil {
+		return nil, fmt.Errorf("error search contacts: %v", err)
+	}
+
 	return contacts, nil
 }
 
@@ -164,13 +176,19 @@ func (c *contactStore) Update(ctx context.Context, updater *dto.UpdateContactCom
 			"metadata":  updater.Metadata,
 			"subject":   updater.Subject,
 		}
-		result model.Contact
+		result *model.Contact
 	)
 
-	if err := pgxscan.Get(ctx, c.db.Master(), &result, query, args); err != nil {
+	rows, err := c.db.Master().Query(ctx, query, args)
+	if err != nil {
 		return nil, fmt.Errorf("error creating contact: %v", err)
 	}
-	return &result, nil
+
+	if result, err = pgx.CollectExactlyOneRow(rows, pgx.RowToAddrOfStructByNameLax[model.Contact]); err != nil {
+		return nil, fmt.Errorf("error creating contact: %v", err)
+	}
+	
+	return result, nil
 }
 
 func (c *contactStore) ClearByDomain(ctx context.Context, domainId int) error {
