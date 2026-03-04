@@ -10,6 +10,7 @@ type Contact struct {
 	Name     string            `json:"name" db:"name"`
 	Username string            `json:"username" db:"username"`
 	Metadata map[string]string `json:"metadata" db:"metadata"`
+	IsBot bool `jsob:"is_bot" db:"is_bot"`
 }
 
 func (c *Contact) Equal(compare *Contact) bool {
@@ -23,10 +24,11 @@ func (c *Contact) Equal(compare *Contact) bool {
 		c.IssuerId == compare.IssuerId &&
 		c.Name == compare.Name &&
 		c.Type == compare.Type &&
-		c.Username == compare.Username
+		c.Username == compare.Username &&
+		c.IsBot == compare.IsBot
 }
 
 func ContactAllowedFields() []string {
 	return []string{"issuer_id", "application_id", "type", "name", "username", "metadata",
-		"id", "domain_id", "created_at", "updated_at", "subject_id"}
+		"id", "domain_id", "created_at", "updated_at", "subject_id", "is_bot"}
 }

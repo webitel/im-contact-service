@@ -11,10 +11,11 @@ volumes:
   redis-data:
   consul-data:
 
+
 services:
   postgres-master:
     image: registry-1.docker.io/bitnami/postgresql:latest
-    container_name: postgres-im-contact-master
+    container_name: postgres-im-master
     networks:
       - webitel
     ports:
@@ -22,21 +23,21 @@ services:
     volumes:
       - postgres-master-data:/bitnami/postgresql
     environment:
-    - POSTGRESQL_USERNAME=postgres
-    - POSTGRESQL_PASSWORD=webitel
-    - POSTGRESQL_DATABASE=webitel
-    - POSTGRESQL_REPLICATION_MODE=master
-    - POSTGRESQL_REPLICATION_USER=replication_user
-    - POSTGRESQL_REPLICATION_PASSWORD=rep_password
-    - POSTGRESQL_MAX_CONNECTIONS=100
-    - POSTGRESQL_SHARED_BUFFERS=128MB
-    - POSTGRESQL_SYNCHRONOUS_COMMIT=on
-    - POSTGRESQL_WAL_LEVEL=replica
-    - POSTGRESQL_MAX_WAL_SENDERS=10
-    - POSTGRESQL_WAL_KEEP_SIZE=64
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=webitel
+      - POSTGRESQL_DATABASE=webitel
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=replication_user
+      - POSTGRESQL_REPLICATION_PASSWORD=rep_password
+      - POSTGRESQL_MAX_CONNECTIONS=100
+      - POSTGRESQL_SHARED_BUFFERS=128MB
+      - POSTGRESQL_SYNCHRONOUS_COMMIT=on
+      - POSTGRESQL_WAL_LEVEL=replica
+      - POSTGRESQL_MAX_WAL_SENDERS=10
+      - POSTGRESQL_WAL_KEEP_SIZE=64
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d webitel"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d webitel" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -52,7 +53,7 @@ services:
 
   postgres-replica:
     image: registry-1.docker.io/bitnami/postgresql:latest
-    container_name: postgres-im-contact-replica
+    container_name: postgres-im-replica
     networks:
       - webitel
     ports:
@@ -75,7 +76,7 @@ services:
       postgres-master:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -88,7 +89,6 @@ services:
         reservations:
           cpus: '0.5'
           memory: 2G
-
 
   consul-server:
     image: hashicorp/consul:1.22
@@ -105,7 +105,7 @@ services:
       - "8600:8600/udp"
     command: "agent -server -bootstrap-expect=1 -ui -client=0.0.0.0 -config-file=/consul/config/server.json"
     healthcheck:
-      test: ["CMD", "consul", "info"]
+      test: [ "CMD", "consul", "info" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -118,7 +118,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
-    container_name: im-contact-rabbit
+    container_name: im-rabbit
     restart: unless-stopped
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
@@ -131,7 +131,7 @@ services:
       - "15673:15672"
       - "5673:5672"
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -147,7 +147,7 @@ services:
 
   redis:
     image: redis:7.4-alpine
-    container_name: im-contact-redis
+    container_name: im-redis
     command: redis-server --requirepass webitel --maxmemory 512mb --maxmemory-policy allkeys-lru
     restart: unless-stopped
     networks:
@@ -157,7 +157,7 @@ services:
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "webitel", "ping"]
+      test: [ "CMD", "redis-cli", "-a", "webitel", "ping" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -175,13 +175,17 @@ services:
     build:
       context: ../../
       dockerfile: ./Dockerfile
+    develop:
+      watch:
+        - action: rebuild
+          path: ../../
     container_name: im-contact-service
     restart: no
-    command: ["server", "--config_file=/config/config.yaml"]
+    command: [ "server", "--config_file=/config/config.yaml" ]
     networks:
       - webitel
     ports:
-      - "10155:10155"
+      - "10156:10156"
     volumes:
       - ./config/config.yaml:/config/config.yaml:ro
     depends_on:
@@ -201,7 +205,3 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
-
-
-
-

@@ -32,15 +32,15 @@ func (c *contactStore) Create(ctx context.Context, contact *model.Contact) (*mod
 		query = `
 			insert into im_contact.contact(
 				domain_id, issuer_id, subject_id,
-				application_id, type, name, username, metadata
+				application_id, type, name, username, metadata, is_bot
 			)
 			values(
 				@domain_id, @issuer_id, @subject_id,
-				@application_id, @type, @name, @username, @metadata
+				@application_id, @type, @name, @username, @metadata, @is_bot
 			)
 			returning
 				id, domain_id, created_at, updated_at, subject_id,
-				issuer_id, application_id, type, name, username, metadata
+				issuer_id, application_id, type, name, username, metadata, is_bot
 		`
 		args = pgx.NamedArgs{
 			"domain_id":      contact.DomainId,
@@ -51,6 +51,7 @@ func (c *contactStore) Create(ctx context.Context, contact *model.Contact) (*mod
 			"name":           contact.Name,
 			"username":       contact.Username,
 			"metadata":       contact.Metadata,
+			"is_bot": contact.IsBot,
 		}
 		result *model.Contact
 	)
@@ -115,7 +116,8 @@ func (c *contactStore) Search(ctx context.Context, filter *dto.ContactSearchFilt
             AND (@apps::text[] IS NULL OR application_id = ANY(@apps::text[]))
             AND (@issuers::text[] IS NULL OR issuer_id = ANY(@issuers::text[]))
             AND (@types::text[] IS NULL OR type = ANY(@types::text[]))
-			and (@subjects::text[] is null or subject_id = any(@subjects::text[]))
+			AND(@subjects::text[] IS NULL OR subject_id = ANY(@subjects::text[]))
+			AND(@is_bot::BOOL IS NULL OR is_bot = @is_bot)
         ORDER BY %s
         LIMIT @limit OFFSET @offset`, selectFields, sortClause)
 
@@ -129,6 +131,7 @@ func (c *contactStore) Search(ctx context.Context, filter *dto.ContactSearchFilt
 			"limit":     limit + 1,
 			"offset":    offset,
 			"subjects":  arrayOrNull(filter.Subjects),
+			"is_bot": filter.OnlyBots,
 		}
 		contacts []*model.Contact
 	)

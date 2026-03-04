@@ -7,12 +7,10 @@
       "request": "launch",
       "mode": "debug",
       "program": "${workspaceFolder}/main.go",
-      "cwd": "${workspaceFolder}",
-      "envFile": "${workspaceFolder}/config/.env",
       "args": [
         "server",
+        "--config_file=./config/config.yml",
       ],
-      "console": "integratedTerminal",
       "showLog": true
     }
   ]
