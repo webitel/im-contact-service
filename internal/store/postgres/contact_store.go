@@ -216,7 +216,7 @@ func (c *contactStore) DeleteBotByFlowID(ctx context.Context, flowID string) err
 	var (
 		query = `
 			delete from im_contact.contact
-			where is_bot = TRUE AND sub = @flow_id 
+			where is_bot = TRUE AND subject_id = @flow_id 
 		`
 		args = pgx.NamedArgs{
 			"flow_id":flowID,
