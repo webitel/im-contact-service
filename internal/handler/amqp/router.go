@@ -14,7 +14,7 @@ import (
 // Exchange names
 const (
 	WebitelGoExchange = "webitel"
-	FlowManagerExchange = "flow"
+	FlowSchemaDomainEventsExchange= "event"
 )
 
 // Queue names
@@ -44,7 +44,7 @@ func RegisterHandlers(
 			topic:   events.FlowSchemaDeleteTopic,
 			queue: FlowSchemaDeleteQueue,
 			handler: bind(h.OnFlowSchemaDelete),
-			exchange: FlowManagerExchange,
+			exchange: FlowSchemaDomainEventsExchange,
 		},
 	}
 

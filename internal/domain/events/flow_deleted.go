@@ -1,13 +1,9 @@
 package events
 
-
-
-
-
 const (
-	FlowSchemaDeleteTopic = "todo.flow_event.delete"
+	FlowSchemaDeleteTopic = "flow_schema.delete.#"
 )
 
 type FlowSchemaDeleted struct {
-	FlowID string
+	FlowID string `json:"flow_id"`
 }
