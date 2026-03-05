@@ -14,11 +14,13 @@ import (
 // Exchange names
 const (
 	WebitelGoExchange = "webitel"
+	FlowManagerExchange = "flow"
 )
 
 // Queue names
 const (
 	DomainDeletedQueue = "im_contacts.domain_delete"
+	FlowSchemaDeleteQueue = "im_contacts.flow_delete"
 )
 
 func RegisterHandlers(
@@ -30,18 +32,26 @@ func RegisterHandlers(
 		topic   string
 		queue   string
 		handler message.NoPublishHandlerFunc
+		exchange string
 	}{
 		{
 			topic:   events.DomainDeletedTopic,
 			queue:   DomainDeletedQueue,
 			handler: bind(h.OnDomainDeleted),
+			exchange: WebitelGoExchange,
+		},
+		{
+			topic:   events.FlowSchemaDeleteTopic,
+			queue: FlowSchemaDeleteQueue,
+			handler: bind(h.OnFlowSchemaDelete),
+			exchange: FlowManagerExchange,
 		},
 	}
 
 	for _, s := range subscriptions {
 		sub, err := subProvider.Build(
 			s.queue,
-			WebitelGoExchange,
+			s.exchange,
 			s.topic,
 		)
 		if err != nil {

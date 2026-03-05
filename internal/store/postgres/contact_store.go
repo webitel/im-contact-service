@@ -2,9 +2,10 @@ package postgres
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/webitel/webitel-go-kit/pkg/errors"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/webitel/im-contact-service/infra/db/pg"
@@ -207,6 +208,23 @@ func (c *contactStore) ClearByDomain(ctx context.Context, domainId int) error {
 
 	if _, err := c.db.Master().Exec(ctx, query, args); err != nil {
 		return fmt.Errorf("contactStore.ClearByDomain (id = %d): %w", domainId, err)
+	}
+	return nil
+}
+
+func (c *contactStore) DeleteBotByFlowID(ctx context.Context, flowID string) error {
+	var (
+		query = `
+			delete from im_contact.contact
+			where is_bot = TRUE AND sub = @flow_id 
+		`
+		args = pgx.NamedArgs{
+			"flow_id":flowID,
+		}
+	)
+
+	if _, err := c.db.Master().Exec(ctx, query, args); err != nil {
+		return errors.Internal("error occurred while executing query", errors.WithCause(err))
 	}
 	return nil
 }
