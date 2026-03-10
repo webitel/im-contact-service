@@ -26,7 +26,7 @@ type Contacter interface {
 
 var (
 	_ Contacter                      = &ContactService{}
-	_ amqp.DomainDeletedEventHandler = &ContactService{}
+	_ amqp.DomainEventsHandler = &ContactService{}
 )
 
 // EventPublisher defines the contract for publishing domain events.
@@ -173,6 +173,18 @@ func (s *ContactService) CanSend(ctx context.Context, query *dto.CanSendQuery) e
 
 func (s *ContactService) DeleteByDomain(ctx context.Context, domainId int) error {
 	err := s.store.ClearByDomain(ctx, domainId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+
+func (s *ContactService) DeleteBotByFlowID(ctx context.Context, flowID string) error {
+	if flowID == "" {
+		return errors.InvalidArgument("flow id required to delete bot by flow id")
+	}
+	err := s.store.DeleteBotByFlowID(ctx, flowID)
 	if err != nil {
 		return err
 	}

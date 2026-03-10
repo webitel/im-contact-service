@@ -19,6 +19,7 @@ type (
 		ClearByDomain(ctx context.Context, domainId int) error
 		Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, bool, error)
 		PartialUpdate(ctx context.Context, query queries.Query) (*model.Contact, error)
+		DeleteBotByFlowID(ctx context.Context, flowID string) error
 	}
 	SettingsStore interface {
 		Get(ctx context.Context, contactID uuid.UUID) (*model.ContactSettings, error)

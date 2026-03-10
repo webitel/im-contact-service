@@ -43,7 +43,7 @@ func (c *ContactService) SearchContact(ctx context.Context, request *impb.Search
 
 	contacts, err := c.handler.Search(ctx, &dto.ContactSearchFilter{
 		Page:     page,
-		Size:     size + 1,
+		Size:     size, // + 1,
 		Q:        &request.Q,
 		Sort:     request.GetSort(),
 		Fields:   request.GetFields(),
@@ -53,6 +53,7 @@ func (c *ContactService) SearchContact(ctx context.Context, request *impb.Search
 		Subjects: request.GetSubjects(),
 		DomainId: int(request.GetDomainId()),
 		Ids:      ids,
+		OnlyBots: request.OnlyBots,
 	})
 
 	if err != nil {
@@ -90,6 +91,7 @@ func (c *ContactService) CreateContact(ctx context.Context, request *impb.Create
 		Username:      request.GetUsername(),
 		Metadata:      request.GetMetadata(),
 		SubjectId:     request.GetSubject(),
+		IsBot: request.GetIsBot(),
 	})
 	if err != nil {
 		return nil, err

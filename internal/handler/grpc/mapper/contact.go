@@ -23,6 +23,7 @@ func MarshalContact(contact *model.Contact) (*impb.Contact, error) {
 		UpdatedAt: contact.UpdatedAt.UnixMilli(),
 		Subject: contact.SubjectId,
 		DomainId: int32(contact.DomainId),
+		IsBot: contact.IsBot,
 	}, nil
 }
 

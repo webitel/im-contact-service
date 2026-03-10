@@ -23,9 +23,8 @@ redis:
 
 consul:
   addr: "localhost:8500"
-  grpc_addr: "127.0.0.1:9999"
 
 
 pubsub:
   broker_url: "amqp://webitel:webitel@localhost:5673"
-  broker_driver: "rabbitmq"
+  broker_driver: "amqp"

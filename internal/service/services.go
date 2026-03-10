@@ -24,7 +24,7 @@ var Module = fx.Module("service",
         fx.Annotate(
             NewContactService,
             fx.As(new(Contacter)),
-            fx.As(new(amqp.DomainDeletedEventHandler)),
+            fx.As(new(amqp.DomainEventsHandler)),
         ),
     ),
 

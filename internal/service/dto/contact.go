@@ -18,6 +18,7 @@ type (
 		Issuers  []string    `json:"issuers"`
 		Types    []string    `json:"types"`
 		Subjects []string    `json:"subjects"`
+		OnlyBots *bool `json:"is_bot"`
 	}
 
 	UpdateContactCommand struct {
