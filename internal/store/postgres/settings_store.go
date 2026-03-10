@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
@@ -32,16 +31,11 @@ func (s *SettingsStore) Create(ctx context.Context, command *dto.CreateContactSe
 	if command.ContactID == uuid.Nil {
 		return nil, errors.InvalidArgument("contact id required to create settings")
 	}
-	settingsEncoded, err := encodeRules(command.Settings.Rules) 
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = s.db.Master().Exec(
+	_, err := s.db.Master().Exec(
 		ctx,
-		`INSERT INTO im_contact.contact_setting(contact_id, rules) VALUES ($1, $2)`,
+		`INSERT INTO im_contact.contact_setting(contact_id, allow_invites_from) VALUES ($1, $2)`,
 		command.ContactID,
-		settingsEncoded,
+		command.Settings.AllowInvitesFrom,
 	)
 	if err != nil {
 		return nil, err
@@ -51,44 +45,6 @@ func (s *SettingsStore) Create(ctx context.Context, command *dto.CreateContactSe
 }
 
 
-func encodeRules(rules []model.SettingRule) ([]byte, error) {
-	if len(rules) == 0 {
-		return nil, errors.InvalidArgument("settings is required to encode settings")
-	}
-	var (
-		result = map[string]any{}
-	)
-
-
-	for _, rule := range rules {
-		result[rule.GetType()] = rule.GetValue()
-	}
-
-
-	return json.Marshal(result)
-}
-
-
-
-func decodeRules(encoded []byte) ([]model.SettingRule, error) {
-	var decoded map[string]any
-	if err := json.Unmarshal(encoded, &decoded); err != nil {
-		return nil, err
-	}
-	var rules []model.SettingRule
-	for ruleName, value := range decoded {
-		rule, err := model.BuildRule(ruleName)
-		if err != nil {
-			continue
-		}
-		if err := rule.SetValue(value); err != nil {
-			return nil, err
-		}
-		rules = append(rules, rule)
-	}
-	return rules, nil
-}
-
 // Get implements [store.SettingsStore].
 func (s *SettingsStore) Get(ctx context.Context, contactID uuid.UUID) (*model.ContactSettings, error) {
 	if contactID == uuid.Nil {
@@ -96,24 +52,17 @@ func (s *SettingsStore) Get(ctx context.Context, contactID uuid.UUID) (*model.Co
 	}
 	var (
 		settings model.ContactSettings
-		rulesEncoded []byte
 	)
-	err := s.db.Master().QueryRow(ctx, "SELECT id, updated_at, contact_id, rules FROM im_contact.contact_setting WHERE contact_id = $1", contactID).Scan(
-		&settings.ID,
-		&settings.UpdatedAt,
-		&settings.ContactID,
-		&rulesEncoded,
+	err := pgxscan.Get(
+		ctx,
+		s.db.Master(),
+		&settings,
+		"SELECT id, updated_at, contact_id, allow_invites_from FROM im_contact.contact_setting WHERE contact_id = $1",
+		contactID,
 	)
 	if err != nil {
 		return nil, err
 	}
-	
-	rules, err := decodeRules(rulesEncoded)
-	if err != nil {
-		return nil, err
-	}
-	settings.Rules = rules
-
 	return &settings, nil
 }
 
@@ -128,18 +77,14 @@ func (s *SettingsStore) Update(ctx context.Context, args *dto.UpdateContactSetti
 	if args.ContactID == uuid.Nil {
 		return nil, errors.InvalidArgument("contact id required to update settings")
 	}
-	rules, err := encodeRules(args.Settings.Rules) 
-	if err != nil {
-		return nil, err
-	}
 
 	var updatedSettings model.ContactSettings
-	err = pgxscan.Get(
+	err := pgxscan.Get(
 		ctx,
 		s.db.Master(),
 		&updatedSettings,
-		`UPDATE im_contact.contact_setting SET rules= $1, updated_at = now() WHERE contact_id = $3 RETURNING id, updated_at, contact_id, rules`,
-		rules,
+		`UPDATE im_contact.contact_setting SET allow_invites_from= $1, updated_at = now() WHERE contact_id = $3 RETURNING id, updated_at, contact_id, allow_invites_from`,
+		args.Settings.AllowInvitesFrom,
 		args.ContactID,
 	)
 	if err != nil {

@@ -60,16 +60,7 @@ func (c *SettingsInConverterImpl) pContactSettingsToPModelContactSettings(source
 		}
 		modelContactSettings.ContactID = uuidUUID2
 		modelContactSettings.UpdatedAt = time.UnixMilli((*source).UpdatedAt)
-		if (*source).Rules != nil {
-			modelContactSettings.Rules = make([]model.SettingRule, len((*source).Rules))
-			for i := 0; i < len((*source).Rules); i++ {
-				modelSettingRule, err := mapper.ConvertRuleFromProto((*source).Rules[i])
-				if err != nil {
-					return nil, err
-				}
-				modelContactSettings.Rules[i] = modelSettingRule
-			}
-		}
+		modelContactSettings.AllowInvitesFrom = mapper.ConvertInUserFilter((*source).AllowInvitesFrom)
 		pModelContactSettings = &modelContactSettings
 	}
 	return pModelContactSettings, nil
@@ -84,16 +75,7 @@ func (c *SettingsOutConverterImpl) ConvertSettings(source *model.ContactSettings
 		contactSettings.Id = mapper.ConvertUUID((*source).ID)
 		contactSettings.ContactId = mapper.ConvertUUID((*source).ContactID)
 		contactSettings.UpdatedAt = mapper.ConvertTimeToInt64((*source).UpdatedAt)
-		if (*source).Rules != nil {
-			contactSettings.Rules = make([]*v1.Rule, len((*source).Rules))
-			for i := 0; i < len((*source).Rules); i++ {
-				pContactRule, err := mapper.ConvertRuleToProto((*source).Rules[i])
-				if err != nil {
-					return nil, err
-				}
-				contactSettings.Rules[i] = pContactRule
-			}
-		}
+		contactSettings.AllowInvitesFrom = mapper.ConvertOutUserFilter((*source).AllowInvitesFrom)
 		pContactSettings = &contactSettings
 	}
 	return pContactSettings, nil
