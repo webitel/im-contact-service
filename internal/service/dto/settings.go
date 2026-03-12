@@ -14,7 +14,7 @@ type GetContactSettingsRequest struct {
 
 type UpdateContactSettingsRequest struct {
 	ContactID uuid.UUID
-	Settings   *model.ContactSettings
+	AllowInvitesFrom *model.UserFilter
 }
 
 

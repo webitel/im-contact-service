@@ -9,7 +9,6 @@ import (
 	model "github.com/webitel/im-contact-service/internal/domain/model"
 	mapper "github.com/webitel/im-contact-service/internal/handler/grpc/mapper"
 	dto "github.com/webitel/im-contact-service/internal/service/dto"
-	"time"
 )
 
 type SettingsInConverterImpl struct{}
@@ -36,34 +35,13 @@ func (c *SettingsInConverterImpl) ConvertUpdateSettingsRequest(source *v1.Update
 			return nil, err
 		}
 		dtoUpdateContactSettingsRequest.ContactID = uuidUUID
-		pModelContactSettings, err := c.pContactSettingsToPModelContactSettings((*source).Settings)
-		if err != nil {
-			return nil, err
+		if (*source).AllowInvitesFrom != nil {
+			modelUserFilter := mapper.ConvertInUserFilter(*(*source).AllowInvitesFrom)
+			dtoUpdateContactSettingsRequest.AllowInvitesFrom = &modelUserFilter
 		}
-		dtoUpdateContactSettingsRequest.Settings = pModelContactSettings
 		pDtoUpdateContactSettingsRequest = &dtoUpdateContactSettingsRequest
 	}
 	return pDtoUpdateContactSettingsRequest, nil
-}
-func (c *SettingsInConverterImpl) pContactSettingsToPModelContactSettings(source *v1.Settings) (*model.ContactSettings, error) {
-	var pModelContactSettings *model.ContactSettings
-	if source != nil {
-		var modelContactSettings model.ContactSettings
-		uuidUUID, err := uuid.Parse((*source).Id)
-		if err != nil {
-			return nil, err
-		}
-		modelContactSettings.ID = uuidUUID
-		uuidUUID2, err := uuid.Parse((*source).ContactId)
-		if err != nil {
-			return nil, err
-		}
-		modelContactSettings.ContactID = uuidUUID2
-		modelContactSettings.UpdatedAt = time.UnixMilli((*source).UpdatedAt)
-		modelContactSettings.AllowInvitesFrom = mapper.ConvertInUserFilter((*source).AllowInvitesFrom)
-		pModelContactSettings = &modelContactSettings
-	}
-	return pModelContactSettings, nil
 }
 
 type SettingsOutConverterImpl struct{}
@@ -73,7 +51,6 @@ func (c *SettingsOutConverterImpl) ConvertSettings(source *model.ContactSettings
 	if source != nil {
 		var contactSettings v1.Settings
 		contactSettings.Id = mapper.ConvertUUID((*source).ID)
-		contactSettings.ContactId = mapper.ConvertUUID((*source).ContactID)
 		contactSettings.UpdatedAt = mapper.ConvertTimeToInt64((*source).UpdatedAt)
 		contactSettings.AllowInvitesFrom = mapper.ConvertOutUserFilter((*source).AllowInvitesFrom)
 		pContactSettings = &contactSettings

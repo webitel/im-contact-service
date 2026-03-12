@@ -3,11 +3,11 @@
 CREATE TABLE im_contact.contact_setting (
     "id" uuid default uuidv7() primary key,
     "contact_id" uuid not null,
-    "updated_at" timestamptz default now() not null
+    "updated_at" timestamptz default now() not null,
     "allow_invites_from" int default 0 not null,
     CONSTRAINT "unique_contact_id" UNIQUE ("contact_id"),
     CONSTRAINT "fk_contact_id" FOREIGN KEY ("contact_id") REFERENCES im_contact.contact ("id") ON DELETE CASCADE
-)
+);
 
 
 CREATE FUNCTION im_contact.create_setting_on_insert() RETURNS trigger AS $$
@@ -26,7 +26,7 @@ EXECUTE FUNCTION im_contact.create_setting_on_insert();
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE im_contact.contact_setting CASCADE;
+DROP TABLE IF EXISTS im_contact.contact_setting CASCADE;
 
-DROP FUNCTION im_contact.create_setting_on_insert() CASCADE;
+DROP FUNCTION IF EXISTS im_contact.create_setting_on_insert() CASCADE;
 -- +goose StatementEnd

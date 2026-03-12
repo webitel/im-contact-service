@@ -20,6 +20,12 @@ type SettingsStore struct {
 	db     *pg.PgxDB
 }
 
+func NewSettingsStore(log *slog.Logger, conn *pg.PgxDB ) (*SettingsStore, error) {
+	return &SettingsStore{
+		logger: log,
+		db: conn,
+	}, nil
+}
 // Create implements [store.SettingsStore].
 func (s *SettingsStore) Create(ctx context.Context, command *dto.CreateContactSettingsRequest) (*model.ContactSettings, error) {
 	if command == nil {
@@ -71,9 +77,6 @@ func (s *SettingsStore) Update(ctx context.Context, args *dto.UpdateContactSetti
 	if args == nil {
 		return nil, errors.InvalidArgument("update settings request is required")
 	}
-	if args.Settings == nil {
-		return nil, errors.InvalidArgument("setting required to update row")
-	}
 	if args.ContactID == uuid.Nil {
 		return nil, errors.InvalidArgument("contact id required to update settings")
 	}
@@ -83,9 +86,14 @@ func (s *SettingsStore) Update(ctx context.Context, args *dto.UpdateContactSetti
 		ctx,
 		s.db.Master(),
 		&updatedSettings,
-		`UPDATE im_contact.contact_setting SET allow_invites_from= $1, updated_at = now() WHERE contact_id = $3 RETURNING id, updated_at, contact_id, allow_invites_from`,
-		args.Settings.AllowInvitesFrom,
+		`UPDATE im_contact.contact_setting
+		 SET allow_invites_from=coalesce($2, allow_invites_from),
+		 updated_at = NOW()
+	     WHERE contact_id = $1
+		 RETURNING id, updated_at, contact_id, allow_invites_from`,
+
 		args.ContactID,
+		args.AllowInvitesFrom,
 	)
 	if err != nil {
 		return nil, err

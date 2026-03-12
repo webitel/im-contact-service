@@ -11,12 +11,19 @@ import (
 	"github.com/webitel/webitel-go-kit/pkg/errors"
 )
 
-type ContactSettingsService struct {
+
+var _ ContactSettingsService = &contactSettingsService{}
+
+type contactSettingsService struct {
 	logger *slog.Logger
 	settingsStore store.SettingsStore
 }
 
-func (s *ContactSettingsService) Get(ctx context.Context, req *dto.GetContactSettingsRequest) (*model.ContactSettings, error) {
+func NewContactSettingService(log *slog.Logger, store store.SettingsStore) (ContactSettingsService, error) {
+	return &contactSettingsService{logger: log, settingsStore: store}, nil
+}
+
+func (s *contactSettingsService) Get(ctx context.Context, req *dto.GetContactSettingsRequest) (*model.ContactSettings, error) {
 	if req == nil {
 		return nil, errors.InvalidArgument("get settings request is required")
 	}
@@ -27,7 +34,7 @@ func (s *ContactSettingsService) Get(ctx context.Context, req *dto.GetContactSet
 }
 
 
-func (s *ContactSettingsService) Update(ctx context.Context, request *dto.UpdateContactSettingsRequest) (*model.ContactSettings, error) {
+func (s *contactSettingsService) Update(ctx context.Context, request *dto.UpdateContactSettingsRequest) (*model.ContactSettings, error) {
 	if request == nil {
 		return nil, errors.InvalidArgument("update settings request is required")
 	}
@@ -37,7 +44,7 @@ func (s *ContactSettingsService) Update(ctx context.Context, request *dto.Update
 	return s.settingsStore.Update(ctx, request)
 }
 
-func (s *ContactSettingsService) Create(ctx context.Context, request *dto.CreateContactSettingsRequest) (*model.ContactSettings, error) {
+func (s *contactSettingsService) Create(ctx context.Context, request *dto.CreateContactSettingsRequest) (*model.ContactSettings, error) {
 	if request == nil {
 		return nil, errors.InvalidArgument("update settings request is required")
 	}

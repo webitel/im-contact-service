@@ -4,25 +4,29 @@ import (
 	"context"
 
 	impb "github.com/webitel/im-contact-service/gen/go/contact/v1"
-	"github.com/webitel/im-contact-service/internal/domain/model"
 	"github.com/webitel/im-contact-service/internal/handler/grpc/mapper"
-	"github.com/webitel/im-contact-service/internal/service/dto"
+	"github.com/webitel/im-contact-service/internal/handler/grpc/mapper/generated"
+	"github.com/webitel/im-contact-service/internal/service"
 )
 
 var _ impb.ContactSettingsServer = &ContactSettingsServer{}
 
 
-type ContactSettingsService interface {
-	Get(ctx context.Context, request *dto.GetContactSettingsRequest) (*model.ContactSettings, error)
-	Update(ctx context.Context, request *dto.UpdateContactSettingsRequest) (*model.ContactSettings, error)
-}
-
 type ContactSettingsServer struct {
 	impb.UnimplementedContactSettingsServer
 
-	service ContactSettingsService
+	service service.ContactSettingsService
 	inConverter mapper.SettingsInConverter
 	outConverter mapper.SettingsOutConverter
+}
+
+func NewContactSettingsServer(handler service.ContactSettingsService) (*ContactSettingsServer, error) {
+	return &ContactSettingsServer{
+		service: handler,
+		inConverter: &generated.SettingsInConverterImpl{},
+		outConverter: &generated.SettingsOutConverterImpl{},
+	}, nil
+
 }
 
 // Get implements [contact.ContactSettingsServer].

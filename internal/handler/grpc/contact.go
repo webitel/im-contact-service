@@ -17,20 +17,24 @@ import (
 	"github.com/webitel/im-contact-service/internal/utils"
 )
 
-var _ impb.ContactsServer = &ContactService{}
+var _ impb.ContactsServer = &ContactServer{}
 
-type ContactService struct {
+type ContactServer struct {
 	impb.UnimplementedContactsServer
 
 	logger  *slog.Logger
-	handler service.Contacter
+	handler service.ContactService
 }
 
-func NewContactService(handler service.Contacter, logger *slog.Logger) *ContactService {
-	return &ContactService{handler: handler, logger: logger}
+
+
+
+
+func NewContactService(handler service.ContactService, logger *slog.Logger) *ContactServer{
+	return &ContactServer{handler: handler, logger: logger}
 }
 
-func (c *ContactService) SearchContact(ctx context.Context, request *impb.SearchContactRequest) (*impb.ContactList, error) {
+func (c *ContactServer) SearchContact(ctx context.Context, request *impb.SearchContactRequest) (*impb.ContactList, error) {
 	ids := utils.Map(request.GetIds(), func(id string) uuid.UUID {
 		parsed, err := uuid.Parse(id)
 		if err != nil {
@@ -75,7 +79,7 @@ func (c *ContactService) SearchContact(ctx context.Context, request *impb.Search
 	return result, nil
 }
 
-func (c *ContactService) CreateContact(ctx context.Context, request *impb.CreateContactRequest) (*impb.Contact, error) {
+func (c *ContactServer) CreateContact(ctx context.Context, request *impb.CreateContactRequest) (*impb.Contact, error) {
 	timeNow := time.Now()
 
 	contact, err := c.handler.Create(ctx, &model.Contact{
@@ -100,7 +104,7 @@ func (c *ContactService) CreateContact(ctx context.Context, request *impb.Create
 	return mapper.MarshalContact(contact)
 }
 
-func (c *ContactService) UpdateContact(ctx context.Context, request *impb.UpdateContactRequest) (*impb.Contact, error) {
+func (c *ContactServer) UpdateContact(ctx context.Context, request *impb.UpdateContactRequest) (*impb.Contact, error) {
 	contactId, err := uuid.Parse(request.GetId())
 	if err != nil {
 		return nil, errors.New("invalid contact id", errors.WithCause(err))
@@ -121,7 +125,7 @@ func (c *ContactService) UpdateContact(ctx context.Context, request *impb.Update
 	return mapper.MarshalContact(updatedContact)
 }
 
-func (c *ContactService) DeleteContact(ctx context.Context, request *impb.DeleteContactRequest) (*impb.Contact, error) {
+func (c *ContactServer) DeleteContact(ctx context.Context, request *impb.DeleteContactRequest) (*impb.Contact, error) {
 	contactId, err := uuid.Parse(request.GetId())
 	if err != nil {
 		return nil, errors.New("invalid contact id", errors.WithCause(err))
@@ -138,7 +142,7 @@ func (c *ContactService) DeleteContact(ctx context.Context, request *impb.Delete
 	return nil, nil
 }
 
-func (c *ContactService) CanSend(ctx context.Context, request *impb.CanSendRequest) (*impb.CanSendResponse, error) {
+func (c *ContactServer) CanSend(ctx context.Context, request *impb.CanSendRequest) (*impb.CanSendResponse, error) {
 	canSendQuery := mapper.CanSendRequest2Model(request)
 
 	err := c.handler.CanSend(ctx, canSendQuery)
@@ -149,7 +153,7 @@ func (c *ContactService) CanSend(ctx context.Context, request *impb.CanSendReque
 	return &impb.CanSendResponse{Can: true}, nil
 }
 
-func (c *ContactService) Upsert(ctx context.Context, req *impb.CreateContactRequest) (*impb.Contact, error) {
+func (c *ContactServer) Upsert(ctx context.Context, req *impb.CreateContactRequest) (*impb.Contact, error) {
 	var (
 		contact = &model.Contact{
 			BaseModel: model.BaseModel{
@@ -173,7 +177,7 @@ func (c *ContactService) Upsert(ctx context.Context, req *impb.CreateContactRequ
 	return mapper.MarshalContact(contact)
 }
 
-func (c *ContactService) Patch(ctx context.Context, request *impb.PatchContactRequest) (*impb.Contact, error) {
+func (c *ContactServer) Patch(ctx context.Context, request *impb.PatchContactRequest) (*impb.Contact, error) {
 	contactPartialUpdateCmd := mapper.MapPatchContactRequestToPartialUpdateContactCommand(request)
 	contact, err := c.handler.PartialUpdate(ctx, contactPartialUpdateCmd)
 	if err != nil {
