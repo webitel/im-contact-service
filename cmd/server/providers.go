@@ -17,7 +17,7 @@ import (
 	otelsdk "github.com/webitel/webitel-go-kit/infra/otel/sdk"
 
 	"github.com/webitel/im-contact-service/config"
-	"github.com/webitel/im-contact-service/internal/domain/model"
+	"github.com/webitel/im-contact-service/internal/model"
 
 	_ "github.com/webitel/webitel-go-kit/infra/discovery/consul"
 	// -------------------- plugin(s) -------------------- //

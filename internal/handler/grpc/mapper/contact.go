@@ -3,16 +3,34 @@ package mapper
 import (
 	"github.com/google/uuid"
 	impb "github.com/webitel/im-contact-service/gen/go/contact/v1"
-	"github.com/webitel/im-contact-service/internal/domain/model"
-	"github.com/webitel/im-contact-service/internal/service/dto"
+	"github.com/webitel/im-contact-service/internal/model"
 )
+
+//go:generate goverter gen github.com/webitel/im-contact-service/internal/handler/grpc/mapper
+
+// goverter:converter
+// goverter:matchIgnoreCase
+// goverter:extend ConvertInt32ToInt
+// goverter:extend github.com/google/uuid:Parse
+type ContactInConverter interface {
+	// goverter:map AppId Apps
+	// goverter:map IssId Issuers
+	// goverter:map Type Types
+	ConvertSearchRequest(*impb.SearchContactRequest) (*model.ContactSearchRequest, error)
+	ConvertUpdateRequest(*impb.UpdateContactRequest) (*model.UpdateContactRequest, error)
+	// goverter:map FieldMask.Paths Fields
+	// goverter:useZeroValueOnPointerInconsistency
+	ConvertPartialUpdateRequest(*impb.PatchContactRequest) (*model.PartialUpdateContactRequest, error)
+	ConvertDeleteRequest(*impb.DeleteContactRequest) (*model.DeleteContactRequest, error)
+}
+
 
 func MarshalContact(contact *model.Contact) (*impb.Contact, error) {
 	if contact == nil {
 		return nil, nil
 	}
 	return &impb.Contact{
-		Id:        contact.Id.String(),
+		Id:        contact.ID.String(),
 		IssId:     contact.IssuerId,
 		AppId:     contact.ApplicationId,
 		Type:      contact.Type,
@@ -22,41 +40,22 @@ func MarshalContact(contact *model.Contact) (*impb.Contact, error) {
 		CreatedAt: contact.CreatedAt.UnixMilli(),
 		UpdatedAt: contact.UpdatedAt.UnixMilli(),
 		Subject: contact.SubjectId,
-		DomainId: int32(contact.DomainId),
+		DomainId: int32(contact.DomainID),
 		IsBot: contact.IsBot,
 	}, nil
 }
 
 
-func CanSendRequest2Model(request *impb.CanSendRequest) *dto.CanSendQuery {
-	// Checked uuid validity in protobuf layer
-	from,_:=uuid.Parse(request.From)
-	to,_:=uuid.Parse(request.To)
-	
-
-	canSendQuery := &dto.CanSendQuery{
-		DomainId: int(request.GetDomainId()),
-		From: model.Peer{
-			Id:from,
-		},
-		To:  model.Peer{
-			Id:to,
-		},
-	}
-
-	return canSendQuery
-}
-
-func MapPatchContactRequestToPartialUpdateContactCommand(request *impb.PatchContactRequest) *dto.PartialUpdateContactCommand {
+func MapPatchContactRequestToPartialUpdateContactCommand(request *impb.PatchContactRequest) *model.PartialUpdateContactRequest {
 	id, _ := uuid.Parse(request.Id)
 	
-	return &dto.PartialUpdateContactCommand{
+	return &model.PartialUpdateContactRequest{
 		ID: id,
 		DomainID: int(request.DomainId),
 		Name: request.Name,
 		Username: request.Username,
-		MD: request.Metadata,
-		Sub: request.Subject,
+		Metadata: request.Metadata,
+		Subject: request.Subject,
 		Fields: request.FieldMask.Paths,
 	}
 }

@@ -7,8 +7,7 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/google/uuid"
 	"github.com/webitel/im-contact-service/infra/db/pg"
-	"github.com/webitel/im-contact-service/internal/domain/model"
-	"github.com/webitel/im-contact-service/internal/service/dto"
+	"github.com/webitel/im-contact-service/internal/model"
 	"github.com/webitel/im-contact-service/internal/store"
 	"github.com/webitel/webitel-go-kit/pkg/errors"
 )
@@ -27,7 +26,7 @@ func NewSettingsStore(log *slog.Logger, conn *pg.PgxDB ) (*SettingsStore, error)
 	}, nil
 }
 // Create implements [store.SettingsStore].
-func (s *SettingsStore) Create(ctx context.Context, command *dto.CreateContactSettingsRequest) (*model.ContactSettings, error) {
+func (s *SettingsStore) Create(ctx context.Context, command *model.CreateContactSettingsRequest) (*model.ContactSettings, error) {
 	if command == nil {
 		return nil, errors.InvalidArgument("create settings request is required")
 	}
@@ -73,7 +72,7 @@ func (s *SettingsStore) Get(ctx context.Context, contactID uuid.UUID) (*model.Co
 }
 
 // Update implements [store.SettingsStore].
-func (s *SettingsStore) Update(ctx context.Context, args *dto.UpdateContactSettingsRequest) (*model.ContactSettings, error) {
+func (s *SettingsStore) Update(ctx context.Context, args *model.UpdateContactSettingsRequest) (*model.ContactSettings, error) {
 	if args == nil {
 		return nil, errors.InvalidArgument("update settings request is required")
 	}

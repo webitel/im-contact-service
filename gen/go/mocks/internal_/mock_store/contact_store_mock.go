@@ -10,8 +10,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	uuid "github.com/google/uuid"
-	model "github.com/webitel/im-contact-service/internal/domain/model"
-	dto "github.com/webitel/im-contact-service/internal/service/dto"
+	model "github.com/webitel/im-contact-service/internal/model"
 )
 
 // MockStore is a mock of Store interface.
@@ -90,7 +89,7 @@ func (mr *MockContactStoreMockRecorder) Delete(ctx, id interface{}) *gomock.Call
 }
 
 // Search mocks base method.
-func (m *MockContactStore) Search(ctx context.Context, filter *dto.ContactSearchFilter) ([]*model.Contact, error) {
+func (m *MockContactStore) Search(ctx context.Context, filter *model.ContactSearchRequest) ([]*model.Contact, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Search", ctx, filter)
 	ret0, _ := ret[0].([]*model.Contact)
@@ -105,7 +104,7 @@ func (mr *MockContactStoreMockRecorder) Search(ctx, filter interface{}) *gomock.
 }
 
 // Update mocks base method.
-func (m *MockContactStore) Update(ctx context.Context, updater *dto.UpdateContactCommand) (*model.Contact, error) {
+func (m *MockContactStore) Update(ctx context.Context, updater *model.UpdateContactRequest) (*model.Contact, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", ctx, updater)
 	ret0, _ := ret[0].(*model.Contact)

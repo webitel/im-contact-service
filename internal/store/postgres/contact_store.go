@@ -9,8 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/webitel/im-contact-service/infra/db/pg"
-	"github.com/webitel/im-contact-service/internal/domain/model"
-	"github.com/webitel/im-contact-service/internal/service/dto"
+	"github.com/webitel/im-contact-service/internal/model"
 	"github.com/webitel/im-contact-service/internal/store"
 	"github.com/webitel/im-contact-service/internal/store/queries"
 )
@@ -44,7 +43,7 @@ func (c *contactStore) Create(ctx context.Context, contact *model.Contact) (*mod
 				issuer_id, application_id, type, name, username, metadata, is_bot
 		`
 		args = pgx.NamedArgs{
-			"domain_id":      contact.DomainId,
+			"domain_id":      contact.DomainID,
 			"issuer_id":      contact.IssuerId,
 			"subject_id":     contact.SubjectId,
 			"application_id": contact.ApplicationId,
@@ -70,15 +69,15 @@ func (c *contactStore) Create(ctx context.Context, contact *model.Contact) (*mod
 }
 
 // Delete implements [store.ContactStore].
-func (c *contactStore) Delete(ctx context.Context, command *dto.DeleteContactCommand) error {
+func (c *contactStore) Delete(ctx context.Context, command *model.DeleteContactRequest) error {
 	var (
 		query = `
 			delete from im_contact.contact
 			where domain_id = @domain_id and id = @id
 		`
 		args = pgx.NamedArgs{
-			"id":        command.Id,
-			"domain_id": command.DomainId,
+			"id":        command.ID,
+			"domain_id": command.DomainID,
 		}
 	)
 
@@ -89,7 +88,7 @@ func (c *contactStore) Delete(ctx context.Context, command *dto.DeleteContactCom
 }
 
 // Search implements [store.ContactStore].
-func (c *contactStore) Search(ctx context.Context, filter *dto.ContactSearchFilter) ([]*model.Contact, error) {
+func (c *contactStore) Search(ctx context.Context, filter *model.ContactSearchRequest) ([]*model.Contact, error) {
 	if filter.Q != nil && *filter.Q != "" {
 		*filter.Q += "%"
 	} else {
@@ -123,8 +122,8 @@ func (c *contactStore) Search(ctx context.Context, filter *dto.ContactSearchFilt
         LIMIT @limit OFFSET @offset`, selectFields, sortClause)
 
 		args = pgx.NamedArgs{
-			"domain_id": filter.DomainId,
-			"ids":       arrayOrNull(filter.Ids),
+			"domain_id": filter.DomainID,
+			"ids":       arrayOrNull(filter.IDs),
 			"Q":         filter.Q,
 			"apps":      arrayOrNull(filter.Apps),
 			"issuers":   arrayOrNull(filter.Issuers),
@@ -157,7 +156,7 @@ func arrayOrNull[T any](v []T) any {
 }
 
 // Update implements [store.ContactStore].
-func (c *contactStore) Update(ctx context.Context, updater *dto.UpdateContactCommand) (*model.Contact, error) {
+func (c *contactStore) Update(ctx context.Context, updater *model.UpdateContactRequest) (*model.Contact, error) {
 	var (
 		query = `
 			update im_contact.contact
@@ -173,8 +172,8 @@ func (c *contactStore) Update(ctx context.Context, updater *dto.UpdateContactCom
 				issuer_id, application_id, type, name, username, metadata
 		`
 		args = pgx.NamedArgs{
-			"id":        updater.Id,
-			"domain_id": updater.DomainId,
+			"id":        updater.ID,
+			"domain_id": updater.DomainID,
 			"name":      updater.Name,
 			"username":  updater.Username,
 			"metadata":  updater.Metadata,
@@ -290,7 +289,7 @@ func (c *contactStore) Upsert(ctx context.Context, contact *model.Contact) (*mod
 				(xmax = 0) as is_insert
 		`
 		args = pgx.NamedArgs{
-			"DomainId": contact.DomainId,
+			"DomainId": contact.DomainID,
 			"IssuerId": contact.IssuerId,
 			"SubjectId": contact.SubjectId,
 			"ApplicationId": contact.ApplicationId,
@@ -304,8 +303,8 @@ func (c *contactStore) Upsert(ctx context.Context, contact *model.Contact) (*mod
 	)
 
 	if err := c.db.Master().QueryRow(ctx, query, args).Scan(
-		&result.Id,
-		&result.DomainId,
+		&result.ID,
+		&result.DomainID,
 		&result.CreatedAt,
 		&result.UpdatedAt,
 		&result.IssuerId,

@@ -7,8 +7,8 @@ import (
 )
 
 type BaseModel struct {
-	Id       uuid.UUID `json:"id" db:"id"`
-	DomainId int       `json:"domain_id" db:"domain_id"`
+	ID       uuid.UUID `json:"id" db:"id"`
+	DomainID int       `json:"domain_id" db:"domain_id"`
 
 	CreatedBy int       `json:"created_by" db:"created_by"`
 	UpdatedBy int       `json:"updated_by" db:"updated_by"`

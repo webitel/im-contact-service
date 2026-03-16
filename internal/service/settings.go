@@ -5,8 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/google/uuid"
-	"github.com/webitel/im-contact-service/internal/domain/model"
-	"github.com/webitel/im-contact-service/internal/service/dto"
+	"github.com/webitel/im-contact-service/internal/model"
 	"github.com/webitel/im-contact-service/internal/store"
 	"github.com/webitel/webitel-go-kit/pkg/errors"
 )
@@ -17,13 +16,14 @@ var _ ContactSettingsService = &contactSettingsService{}
 type contactSettingsService struct {
 	logger *slog.Logger
 	settingsStore store.SettingsStore
+	contactStore store.ContactStore
 }
 
 func NewContactSettingService(log *slog.Logger, store store.SettingsStore) (ContactSettingsService, error) {
 	return &contactSettingsService{logger: log, settingsStore: store}, nil
 }
 
-func (s *contactSettingsService) Get(ctx context.Context, req *dto.GetContactSettingsRequest) (*model.ContactSettings, error) {
+func (s *contactSettingsService) Get(ctx context.Context, req *model.GetContactSettingsRequest) (*model.ContactSettings, error) {
 	if req == nil {
 		return nil, errors.InvalidArgument("get settings request is required")
 	}
@@ -34,7 +34,7 @@ func (s *contactSettingsService) Get(ctx context.Context, req *dto.GetContactSet
 }
 
 
-func (s *contactSettingsService) Update(ctx context.Context, request *dto.UpdateContactSettingsRequest) (*model.ContactSettings, error) {
+func (s *contactSettingsService) Update(ctx context.Context, request *model.UpdateContactSettingsRequest) (*model.ContactSettings, error) {
 	if request == nil {
 		return nil, errors.InvalidArgument("update settings request is required")
 	}
@@ -44,7 +44,7 @@ func (s *contactSettingsService) Update(ctx context.Context, request *dto.Update
 	return s.settingsStore.Update(ctx, request)
 }
 
-func (s *contactSettingsService) Create(ctx context.Context, request *dto.CreateContactSettingsRequest) (*model.ContactSettings, error) {
+func (s *contactSettingsService) Create(ctx context.Context, request *model.CreateContactSettingsRequest) (*model.ContactSettings, error) {
 	if request == nil {
 		return nil, errors.InvalidArgument("update settings request is required")
 	}
@@ -56,3 +56,5 @@ func (s *contactSettingsService) Create(ctx context.Context, request *dto.Create
 	}
 	return s.settingsStore.Create(ctx, request)
 }
+
+

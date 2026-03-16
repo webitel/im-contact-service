@@ -10,10 +10,12 @@ import (
 var Module = fx.Module("grpc",
 	fx.Provide(
 		NewContactService,
-		 NewContactSettingsServer),
+		 NewContactSettingsServer,
+		NewPrivacyServer),
 	fx.Invoke(
 		RegisterContactService,
 		RegisterContactSettingsService,
+		RegisterContactPrivacyService,
 	),
 )
 
@@ -23,5 +25,11 @@ func RegisterContactService(server *grpcsrv.Server, service *ContactServer, lc f
 }
 func RegisterContactSettingsService(server *grpcsrv.Server, service *ContactSettingsServer, lc fx.Lifecycle) error {
 	impb.RegisterContactSettingsServer(server.Server, service)
+	return nil
+}
+
+
+func RegisterContactPrivacyService(server *grpcsrv.Server, service *ContactPrivacyServer, lc fx.Lifecycle) error {
+	impb.RegisterContactPrivacyServer(server.Server, service)
 	return nil
 }

@@ -4,28 +4,33 @@ import (
 	"context"
 
 	pubsubadapter "github.com/webitel/im-contact-service/internal/adapter/pubsub"
-	"github.com/webitel/im-contact-service/internal/domain/model"
 	"github.com/webitel/im-contact-service/internal/handler/amqp"
-	"github.com/webitel/im-contact-service/internal/service/dto"
+	"github.com/webitel/im-contact-service/internal/model"
 	"go.uber.org/fx"
 )
 
 type ContactSettingsService interface {
-	Get(ctx context.Context, req *dto.GetContactSettingsRequest) (*model.ContactSettings, error)
-	Update(ctx context.Context, request *dto.UpdateContactSettingsRequest) (*model.ContactSettings, error) 
-	Create(ctx context.Context, request *dto.CreateContactSettingsRequest) (*model.ContactSettings, error)
+	Get(ctx context.Context, req *model.GetContactSettingsRequest) (*model.ContactSettings, error)
+	Update(ctx context.Context, request *model.UpdateContactSettingsRequest) (*model.ContactSettings, error) 
+	Create(ctx context.Context, request *model.CreateContactSettingsRequest) (*model.ContactSettings, error)
 }
 
 type ContactService interface {
-	Search(ctx context.Context, filter *dto.ContactSearchFilter) ([]*model.Contact, error)
+	Search(ctx context.Context, filter *model.ContactSearchRequest) ([]*model.Contact, error)
 	Create(ctx context.Context, input *model.Contact) (*model.Contact, error)
-	Update(ctx context.Context, input *dto.UpdateContactCommand) (*model.Contact, error)
-	Delete(ctx context.Context, input *dto.DeleteContactCommand) error
-	CanSend(ctx context.Context, query *dto.CanSendQuery) error
+	Update(ctx context.Context, input *model.UpdateContactRequest) (*model.Contact, error)
+	Delete(ctx context.Context, input *model.DeleteContactRequest) error
+	CanSend(ctx context.Context, query *model.CanSendRequest) error
 	Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, error)
-	PartialUpdate(ctx context.Context, cmd *dto.PartialUpdateContactCommand) (*model.Contact, error)
+	PartialUpdate(ctx context.Context, cmd *model.PartialUpdateContactRequest) (*model.Contact, error)
     DeleteByDomain(ctx context.Context, domainId int) error 
     DeleteBotByFlowID(ctx context.Context, flowID string) error 
+}
+
+type ContactPrivacyService interface {
+    CanSend(ctx context.Context, query *model.CanSendRequest) error 
+    CanInvite(ctx context.Context, query *model.CanInviteRequest) error
+
 }
 
 var Module = fx.Module("service",
@@ -49,6 +54,7 @@ var Module = fx.Module("service",
             fx.As(fx.Self()),
         ),
         NewContactSettingService,
+        NewContactPrivacyService,
     ),
 
     fx.Invoke(amqp.RegisterHandlers),

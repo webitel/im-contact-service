@@ -10,10 +10,9 @@ import (
 	"github.com/webitel/webitel-go-kit/pkg/errors"
 
 	impb "github.com/webitel/im-contact-service/gen/go/contact/v1"
-	"github.com/webitel/im-contact-service/internal/domain/model"
 	"github.com/webitel/im-contact-service/internal/handler/grpc/mapper"
+	"github.com/webitel/im-contact-service/internal/model"
 	"github.com/webitel/im-contact-service/internal/service"
-	"github.com/webitel/im-contact-service/internal/service/dto"
 	"github.com/webitel/im-contact-service/internal/utils"
 )
 
@@ -24,6 +23,7 @@ type ContactServer struct {
 
 	logger  *slog.Logger
 	handler service.ContactService
+	inMapper mapper.ContactInConverter
 }
 
 
@@ -45,7 +45,7 @@ func (c *ContactServer) SearchContact(ctx context.Context, request *impb.SearchC
 	})
 	page, size := ParsePagination(request.GetPage(), request.GetSize())
 
-	contacts, err := c.handler.Search(ctx, &dto.ContactSearchFilter{
+	contacts, err := c.handler.Search(ctx, &model.ContactSearchRequest{
 		Page:     page,
 		Size:     size, // + 1,
 		Q:        &request.Q,
@@ -55,8 +55,8 @@ func (c *ContactServer) SearchContact(ctx context.Context, request *impb.SearchC
 		Issuers:  request.GetIssId(),
 		Types:    request.GetType(),
 		Subjects: request.GetSubjects(),
-		DomainId: int(request.GetDomainId()),
-		Ids:      ids,
+		DomainID: int(request.GetDomainId()),
+		IDs:      ids,
 		OnlyBots: request.OnlyBots,
 	})
 
@@ -86,7 +86,7 @@ func (c *ContactServer) CreateContact(ctx context.Context, request *impb.CreateC
 		BaseModel: model.BaseModel{
 			CreatedAt: timeNow,
 			UpdatedAt: timeNow,
-			DomainId:  int(request.GetDomainId()),
+			DomainID:  int(request.GetDomainId()),
 		},
 		IssuerId:      request.GetIssId(),
 		ApplicationId: request.GetAppId(),
@@ -110,13 +110,13 @@ func (c *ContactServer) UpdateContact(ctx context.Context, request *impb.UpdateC
 		return nil, errors.New("invalid contact id", errors.WithCause(err))
 	}
 
-	updatedContact, err := c.handler.Update(ctx, &dto.UpdateContactCommand{
-		Id:       contactId,
+	updatedContact, err := c.handler.Update(ctx, &model.UpdateContactRequest{
+		ID:       contactId,
 		Name:     &request.Name,
 		Username: &request.Username,
 		Metadata: request.GetMetadata(),
 		Subject:  request.GetSubject(),
-		DomainId: int(request.GetDomainId()),
+		DomainID: int(request.GetDomainId()),
 	})
 	if err != nil {
 		return nil, err
@@ -131,9 +131,9 @@ func (c *ContactServer) DeleteContact(ctx context.Context, request *impb.DeleteC
 		return nil, errors.New("invalid contact id", errors.WithCause(err))
 	}
 
-	err = c.handler.Delete(ctx, &dto.DeleteContactCommand{
-		Id:       contactId,
-		DomainId: int(request.GetDomainId()),
+	err = c.handler.Delete(ctx, &model.DeleteContactRequest{
+		ID:       contactId,
+		DomainID: int(request.GetDomainId()),
 	})
 	if err != nil {
 		return nil, err
@@ -142,22 +142,11 @@ func (c *ContactServer) DeleteContact(ctx context.Context, request *impb.DeleteC
 	return nil, nil
 }
 
-func (c *ContactServer) CanSend(ctx context.Context, request *impb.CanSendRequest) (*impb.CanSendResponse, error) {
-	canSendQuery := mapper.CanSendRequest2Model(request)
-
-	err := c.handler.CanSend(ctx, canSendQuery)
-	if err != nil {
-		return nil, err
-	}
-
-	return &impb.CanSendResponse{Can: true}, nil
-}
-
 func (c *ContactServer) Upsert(ctx context.Context, req *impb.CreateContactRequest) (*impb.Contact, error) {
 	var (
 		contact = &model.Contact{
 			BaseModel: model.BaseModel{
-				DomainId: int(req.GetDomainId()),
+				DomainID: int(req.GetDomainId()),
 			},
 			IssuerId:      req.GetIssId(),
 			ApplicationId: req.GetAppId(),

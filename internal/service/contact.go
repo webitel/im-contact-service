@@ -5,9 +5,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/webitel/im-contact-service/internal/domain/events"
-	"github.com/webitel/im-contact-service/internal/domain/model"
 	"github.com/webitel/im-contact-service/internal/handler/amqp"
-	"github.com/webitel/im-contact-service/internal/service/dto"
+	"github.com/webitel/im-contact-service/internal/model"
 	"github.com/webitel/im-contact-service/internal/store"
 	"github.com/webitel/im-contact-service/internal/store/queries"
 	"github.com/webitel/webitel-go-kit/pkg/errors"
@@ -40,7 +39,7 @@ func NewContactService(store store.ContactStore, publisher EventPublisher) Conta
 }
 
 // Search retrieves contacts based on the provided filter.
-func (s *contactService) Search(ctx context.Context, filter *dto.ContactSearchFilter) ([]*model.Contact, error) {
+func (s *contactService) Search(ctx context.Context, filter *model.ContactSearchRequest) ([]*model.Contact, error) {
 	if filter == nil {
 		return nil, errors.InvalidArgument("filter is required")
 	}
@@ -99,8 +98,8 @@ func (s *contactService) Upsert(ctx context.Context, contact *model.Contact) (*m
 }
 
 // Update modifies an existing contact and publishes a ContactUpdatedEvent.
-func (s *contactService) Update(ctx context.Context, input *dto.UpdateContactCommand) (*model.Contact, error) {
-	if input == nil || input.Id == uuid.Nil {
+func (s *contactService) Update(ctx context.Context, input *model.UpdateContactRequest) (*model.Contact, error) {
+	if input == nil || input.ID == uuid.Nil {
 		return nil, errors.InvalidArgument("input with a valid ID is required")
 	}
 
@@ -118,11 +117,11 @@ func (s *contactService) Update(ctx context.Context, input *dto.UpdateContactCom
 }
 
 // Delete removes a contact and publishes a ContactDeletedEvent.
-func (s *contactService) Delete(ctx context.Context, input *dto.DeleteContactCommand) error {
-	if input.Id == uuid.Nil {
+func (s *contactService) Delete(ctx context.Context, input *model.DeleteContactRequest) error {
+	if input.ID == uuid.Nil {
 		return errors.InvalidArgument("id is required")
 	}
-	if input.DomainId == 0 {
+	if input.DomainID == 0 {
 		return errors.InvalidArgument("domainId is required")
 	}
 
@@ -131,16 +130,16 @@ func (s *contactService) Delete(ctx context.Context, input *dto.DeleteContactCom
 	}
 
 	// Event handles its own topic and timestamp logic.
-	return s.publisher.Publish(ctx, events.NewContactDeleted(input.Id))
+	return s.publisher.Publish(ctx, events.NewContactDeleted(input.ID))
 }
 
 // CanSend checks if a message can be sent to/from a contact.
-func (s *contactService) CanSend(ctx context.Context, query *dto.CanSendQuery) error {
+func (s *contactService) CanSend(ctx context.Context, query *model.CanSendRequest) error {
 	if query == nil {
 		return errors.InvalidArgument("query is required")
 	}
 
-	usersPeers, err := s.store.Search(ctx, &dto.ContactSearchFilter{Ids: []uuid.UUID{query.From.Id, query.To.Id}, DomainId: query.DomainId})
+	usersPeers, err := s.store.Search(ctx, &model.ContactSearchRequest{IDs: []uuid.UUID{query.From, query.To}, DomainID: query.DomainID})
 	if err != nil {
 		return err
 	}
@@ -182,7 +181,7 @@ func (s *contactService) DeleteBotByFlowID(ctx context.Context, flowID string) e
 	return nil
 }
 
-func (s *contactService) PartialUpdate(ctx context.Context, cmd *dto.PartialUpdateContactCommand) (*model.Contact, error) {
+func (s *contactService) PartialUpdate(ctx context.Context, cmd *model.PartialUpdateContactRequest) (*model.Contact, error) {
 	if cmd.ID == uuid.Nil || cmd.DomainID <= 0 {
 		return nil, errors.InvalidArgument("ID and DomainID are required fields!")
 	}
@@ -196,9 +195,9 @@ func (s *contactService) PartialUpdate(ctx context.Context, cmd *dto.PartialUpda
 	case "username":
 		query.WithUsername(cmd.Username)
 	case "metadata":
-		query.WithMetadata(cmd.MD)
+		query.WithMetadata(cmd.Metadata)
 	case "subject":
-		query.WithSubject(cmd.Sub)
+		query.WithSubject(cmd.Subject)
 	}
 	}
 	
