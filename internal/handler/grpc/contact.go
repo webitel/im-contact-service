@@ -10,27 +10,31 @@ import (
 	"github.com/webitel/webitel-go-kit/pkg/errors"
 
 	impb "github.com/webitel/im-contact-service/gen/go/contact/v1"
-	"github.com/webitel/im-contact-service/internal/domain/model"
 	"github.com/webitel/im-contact-service/internal/handler/grpc/mapper"
+	"github.com/webitel/im-contact-service/internal/model"
 	"github.com/webitel/im-contact-service/internal/service"
-	"github.com/webitel/im-contact-service/internal/service/dto"
 	"github.com/webitel/im-contact-service/internal/utils"
 )
 
-var _ impb.ContactsServer = &ContactService{}
+var _ impb.ContactsServer = &ContactServer{}
 
-type ContactService struct {
+type ContactServer struct {
 	impb.UnimplementedContactsServer
 
 	logger  *slog.Logger
-	handler service.Contacter
+	handler service.ContactService
+	inMapper mapper.ContactInConverter
 }
 
-func NewContactService(handler service.Contacter, logger *slog.Logger) *ContactService {
-	return &ContactService{handler: handler, logger: logger}
+
+
+
+
+func NewContactService(handler service.ContactService, logger *slog.Logger) *ContactServer{
+	return &ContactServer{handler: handler, logger: logger}
 }
 
-func (c *ContactService) SearchContact(ctx context.Context, request *impb.SearchContactRequest) (*impb.ContactList, error) {
+func (c *ContactServer) SearchContact(ctx context.Context, request *impb.SearchContactRequest) (*impb.ContactList, error) {
 	ids := utils.Map(request.GetIds(), func(id string) uuid.UUID {
 		parsed, err := uuid.Parse(id)
 		if err != nil {
@@ -41,7 +45,7 @@ func (c *ContactService) SearchContact(ctx context.Context, request *impb.Search
 	})
 	page, size := ParsePagination(request.GetPage(), request.GetSize())
 
-	contacts, err := c.handler.Search(ctx, &dto.ContactSearchFilter{
+	contacts, err := c.handler.Search(ctx, &model.ContactSearchRequest{
 		Page:     page,
 		Size:     size, // + 1,
 		Q:        &request.Q,
@@ -51,8 +55,8 @@ func (c *ContactService) SearchContact(ctx context.Context, request *impb.Search
 		Issuers:  request.GetIssId(),
 		Types:    request.GetType(),
 		Subjects: request.GetSubjects(),
-		DomainId: int(request.GetDomainId()),
-		Ids:      ids,
+		DomainID: int(request.GetDomainId()),
+		IDs:      ids,
 		OnlyBots: request.OnlyBots,
 	})
 
@@ -75,14 +79,14 @@ func (c *ContactService) SearchContact(ctx context.Context, request *impb.Search
 	return result, nil
 }
 
-func (c *ContactService) CreateContact(ctx context.Context, request *impb.CreateContactRequest) (*impb.Contact, error) {
+func (c *ContactServer) CreateContact(ctx context.Context, request *impb.CreateContactRequest) (*impb.Contact, error) {
 	timeNow := time.Now()
 
 	contact, err := c.handler.Create(ctx, &model.Contact{
 		BaseModel: model.BaseModel{
 			CreatedAt: timeNow,
 			UpdatedAt: timeNow,
-			DomainId:  int(request.GetDomainId()),
+			DomainID:  int(request.GetDomainId()),
 		},
 		IssuerId:      request.GetIssId(),
 		ApplicationId: request.GetAppId(),
@@ -100,19 +104,19 @@ func (c *ContactService) CreateContact(ctx context.Context, request *impb.Create
 	return mapper.MarshalContact(contact)
 }
 
-func (c *ContactService) UpdateContact(ctx context.Context, request *impb.UpdateContactRequest) (*impb.Contact, error) {
+func (c *ContactServer) UpdateContact(ctx context.Context, request *impb.UpdateContactRequest) (*impb.Contact, error) {
 	contactId, err := uuid.Parse(request.GetId())
 	if err != nil {
 		return nil, errors.New("invalid contact id", errors.WithCause(err))
 	}
 
-	updatedContact, err := c.handler.Update(ctx, &dto.UpdateContactCommand{
-		Id:       contactId,
+	updatedContact, err := c.handler.Update(ctx, &model.UpdateContactRequest{
+		ID:       contactId,
 		Name:     &request.Name,
 		Username: &request.Username,
 		Metadata: request.GetMetadata(),
 		Subject:  request.GetSubject(),
-		DomainId: int(request.GetDomainId()),
+		DomainID: int(request.GetDomainId()),
 	})
 	if err != nil {
 		return nil, err
@@ -121,15 +125,15 @@ func (c *ContactService) UpdateContact(ctx context.Context, request *impb.Update
 	return mapper.MarshalContact(updatedContact)
 }
 
-func (c *ContactService) DeleteContact(ctx context.Context, request *impb.DeleteContactRequest) (*impb.Contact, error) {
+func (c *ContactServer) DeleteContact(ctx context.Context, request *impb.DeleteContactRequest) (*impb.Contact, error) {
 	contactId, err := uuid.Parse(request.GetId())
 	if err != nil {
 		return nil, errors.New("invalid contact id", errors.WithCause(err))
 	}
 
-	err = c.handler.Delete(ctx, &dto.DeleteContactCommand{
-		Id:       contactId,
-		DomainId: int(request.GetDomainId()),
+	err = c.handler.Delete(ctx, &model.DeleteContactRequest{
+		ID:       contactId,
+		DomainID: int(request.GetDomainId()),
 	})
 	if err != nil {
 		return nil, err
@@ -138,22 +142,11 @@ func (c *ContactService) DeleteContact(ctx context.Context, request *impb.Delete
 	return nil, nil
 }
 
-func (c *ContactService) CanSend(ctx context.Context, request *impb.CanSendRequest) (*impb.CanSendResponse, error) {
-	canSendQuery := mapper.CanSendRequest2Model(request)
-
-	err := c.handler.CanSend(ctx, canSendQuery)
-	if err != nil {
-		return nil, err
-	}
-
-	return &impb.CanSendResponse{Can: true}, nil
-}
-
-func (c *ContactService) Upsert(ctx context.Context, req *impb.CreateContactRequest) (*impb.Contact, error) {
+func (c *ContactServer) Upsert(ctx context.Context, req *impb.CreateContactRequest) (*impb.Contact, error) {
 	var (
 		contact = &model.Contact{
 			BaseModel: model.BaseModel{
-				DomainId: int(req.GetDomainId()),
+				DomainID: int(req.GetDomainId()),
 			},
 			IssuerId:      req.GetIssId(),
 			ApplicationId: req.GetAppId(),
@@ -173,7 +166,7 @@ func (c *ContactService) Upsert(ctx context.Context, req *impb.CreateContactRequ
 	return mapper.MarshalContact(contact)
 }
 
-func (c *ContactService) Patch(ctx context.Context, request *impb.PatchContactRequest) (*impb.Contact, error) {
+func (c *ContactServer) Patch(ctx context.Context, request *impb.PatchContactRequest) (*impb.Contact, error) {
 	contactPartialUpdateCmd := mapper.MapPatchContactRequestToPartialUpdateContactCommand(request)
 	contact, err := c.handler.PartialUpdate(ctx, contactPartialUpdateCmd)
 	if err != nil {

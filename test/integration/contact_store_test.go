@@ -14,8 +14,7 @@ import (
 	"github.com/webitel/im-contact-service/cmd/migrate"
 	"github.com/webitel/im-contact-service/config"
 	"github.com/webitel/im-contact-service/infra/db/pg"
-	"github.com/webitel/im-contact-service/internal/domain/model"
-	"github.com/webitel/im-contact-service/internal/service/dto"
+	"github.com/webitel/im-contact-service/internal/model"
 	"github.com/webitel/im-contact-service/internal/store"
 	"github.com/webitel/im-contact-service/internal/store/postgres"
 	testhelpers "github.com/webitel/im-contact-service/test/integration/test_helpers"
@@ -36,7 +35,7 @@ func TestContactStoreTestSuite(t *testing.T) {
 func newContact(domain int, opts ...func(*model.Contact)) *model.Contact {
 	c := &model.Contact{
 		BaseModel: model.BaseModel{
-			DomainId: domain,
+			DomainID: domain,
 		},
 		IssuerId:      uuid.New().String(),
 		ApplicationId: uuid.New().String(),
@@ -112,7 +111,7 @@ func (suite *ContactStoreTestSuite) TestCreate_HappyPath() {
 	suite.Require().NoError(err)
 	suite.NotNil(created)
 
-	suite.NotEqual(uuid.Nil, created.Id)
+	suite.NotEqual(uuid.Nil, created.ID)
 	suite.NotZero(created.CreatedAt)
 	suite.NotZero(created.UpdatedAt)
 	suite.Equal(contact.Name, created.Name)
@@ -181,10 +180,10 @@ func (suite *ContactStoreTestSuite) TestSearch_NoFilters() {
 	_, err = suite.repo.Create(suite.ctx, newContact(1))
 	suite.Require().NoError(err)
 
-	res, err := suite.repo.Search(suite.ctx, &dto.ContactSearchFilter{
+	res, err := suite.repo.Search(suite.ctx, &model.ContactSearchRequest{
 		Page:     1,
 		Size:     10,
-		DomainId: 1,
+		DomainID: 1,
 	})
 
 	suite.Require().NoError(err)
@@ -204,12 +203,12 @@ func (suite *ContactStoreTestSuite) TestSearch_Q_ByName() {
 
 	q := "Ang"
 
-	res, err := suite.repo.Search(suite.ctx, &dto.ContactSearchFilter{
+	res, err := suite.repo.Search(suite.ctx, &model.ContactSearchRequest{
 		Page:     1,
 		Size:     10,
 		Q:        &q,
 		Fields:   []string{"name", "id"},
-		DomainId: 1,
+		DomainID: 1,
 	})
 
 	suite.Require().NoError(err)
@@ -228,11 +227,11 @@ func (suite *ContactStoreTestSuite) TestSearch_ByApplication() {
 	_, err = suite.repo.Create(suite.ctx, newContact(1))
 	suite.Require().NoError(err)
 
-	res, err := suite.repo.Search(suite.ctx, &dto.ContactSearchFilter{
+	res, err := suite.repo.Search(suite.ctx, &model.ContactSearchRequest{
 		Page:     1,
 		Size:     10,
 		Apps:     []string{appID.String()},
-		DomainId: 1,
+		DomainID: 1,
 	})
 
 	suite.Require().NoError(err)
@@ -247,11 +246,11 @@ func (suite *ContactStoreTestSuite) TestSearch_ByIssuer() {
 	}))
 	suite.Require().NoError(err)
 
-	res, err := suite.repo.Search(suite.ctx, &dto.ContactSearchFilter{
+	res, err := suite.repo.Search(suite.ctx, &model.ContactSearchRequest{
 		Page:     1,
 		Size:     10,
 		Issuers:  []string{issuer.String()},
-		DomainId: 1,
+		DomainID: 1,
 	})
 
 	suite.Require().NoError(err)
@@ -265,10 +264,10 @@ func (suite *ContactStoreTestSuite) TestSearch_Pagination() {
 		}))
 	}
 
-	res, err := suite.repo.Search(suite.ctx, &dto.ContactSearchFilter{
+	res, err := suite.repo.Search(suite.ctx, &model.ContactSearchRequest{
 		Page:     2,
 		Size:     10,
-		DomainId: 1,
+		DomainID: 1,
 	})
 
 	suite.Require().NoError(err)
@@ -278,11 +277,11 @@ func (suite *ContactStoreTestSuite) TestSearch_Pagination() {
 func (suite *ContactStoreTestSuite) TestSearch_EmptyResult() {
 	q := "does-not-exist"
 
-	res, err := suite.repo.Search(suite.ctx, &dto.ContactSearchFilter{
+	res, err := suite.repo.Search(suite.ctx, &model.ContactSearchRequest{
 		Page:     1,
 		Size:     10,
 		Q:        &q,
-		DomainId: 1,
+		DomainID: 1,
 	})
 
 	suite.Require().NoError(err)
@@ -300,9 +299,9 @@ func (suite *ContactStoreTestSuite) TestUpdate_HappyPath() {
 		updatedUsername string = "a.jolie@webitel.com"
 	)
 
-	cmd := &dto.UpdateContactCommand{
-		Id:       created.Id,
-		DomainId: created.DomainId,
+	cmd := &model.UpdateContactRequest{
+		ID:       created.ID,
+		DomainID: created.DomainID,
 		Name:     &updatedName,
 		Username: &updatedUsername,
 	}
@@ -323,9 +322,9 @@ func (suite *ContactStoreTestSuite) TestUpdate_Metadata_Clear() {
 
 	empty := map[string]string{}
 
-	cmd := &dto.UpdateContactCommand{
-		Id:       created.Id,
-		DomainId: created.DomainId,
+	cmd := &model.UpdateContactRequest{
+		ID:       created.ID,
+		DomainID: created.DomainID,
 		Metadata: empty,
 	}
 
@@ -336,8 +335,8 @@ func (suite *ContactStoreTestSuite) TestUpdate_Metadata_Clear() {
 }
 
 func (suite *ContactStoreTestSuite) TestUpdate_NotFound() {
-	_, err := suite.repo.Update(suite.ctx, &dto.UpdateContactCommand{
-		Id: uuid.New(),
+	_, err := suite.repo.Update(suite.ctx, &model.UpdateContactRequest{
+		ID: uuid.New(),
 	})
 
 	suite.Error(err)
@@ -349,17 +348,17 @@ func (suite *ContactStoreTestSuite) TestUpdate_NotFound() {
 func (suite *ContactStoreTestSuite) TestDelete_HappyPath() {
 	created, _ := suite.repo.Create(suite.ctx, newContact(1))
 
-	command := &dto.DeleteContactCommand{
-		Id:       created.Id,
-		DomainId: created.DomainId,
+	command := &model.DeleteContactRequest{
+		ID:       created.ID,
+		DomainID: created.DomainID,
 	}
 	err := suite.repo.Delete(suite.ctx, command)
 	suite.Require().NoError(err)
 
-	res, _ := suite.repo.Search(suite.ctx, &dto.ContactSearchFilter{
+	res, _ := suite.repo.Search(suite.ctx, &model.ContactSearchRequest{
 		Page:     1,
 		Size:     10,
-		DomainId: 1,
+		DomainID: 1,
 	})
 
 	suite.Empty(res)
@@ -377,10 +376,10 @@ func (suite *ContactStoreTestSuite) TestClearByDomain() {
 	err := suite.repo.ClearByDomain(suite.ctx, 1)
 	suite.Require().NoError(err)
 
-	res, _ := suite.repo.Search(suite.ctx, &dto.ContactSearchFilter{
+	res, _ := suite.repo.Search(suite.ctx, &model.ContactSearchRequest{
 		Page:     1,
 		Size:     6,
-		DomainId: 2,
+		DomainID: 2,
 	})
 
 	suite.Len(res, 5)
@@ -398,7 +397,7 @@ func (suite *ContactStoreTestSuite) TestUpsert_Insert_HappyPath() {
 	suite.Require().NoError(err)
 	suite.True(isInsert, "Expected insert operation")
 	suite.NotNil(result)
-	suite.NotEqual(uuid.Nil, result.Id)
+	suite.NotEqual(uuid.Nil, result.ID)
 	suite.NotZero(result.CreatedAt)
 	suite.NotZero(result.UpdatedAt)
 	suite.Equal(contact.Name, result.Name)
@@ -427,7 +426,7 @@ func (suite *ContactStoreTestSuite) TestUpsert_Update_HappyPath() {
 	second, isInsert, err := suite.repo.Upsert(suite.ctx, updatedContact)
 	suite.Require().NoError(err)
 	suite.False(isInsert, "Expected update operation")
-	suite.Equal(first.Id, second.Id, "ID should remain the same")
+	suite.Equal(first.ID, second.ID, "ID should remain the same")
 	suite.Equal("Updated Name", second.Name)
 	suite.Equal("updated@example.com", second.Username)
 	suite.Equal(first.CreatedAt, second.CreatedAt, "CreatedAt should not change")
@@ -529,7 +528,7 @@ func (suite *ContactStoreTestSuite) TestUpsert_MultipleContactsDifferentDomains(
 	suite.Require().NoError(err)
 	suite.True(isInsert2)
 
-	suite.NotEqual(result1.Id, result2.Id, "Different domains should have different IDs")
+	suite.NotEqual(result1.ID, result2.ID, "Different domains should have different IDs")
 	suite.Equal("Domain 1 Contact", result1.Name)
 	suite.Equal("Domain 2 Contact", result2.Name)
 }
@@ -555,8 +554,8 @@ func (suite *ContactStoreTestSuite) TestUpsert_ConsecutiveUpdates() {
 	suite.Equal("Name v3", v3.Name)
 	suite.Greater(v3.UpdatedAt, v2.UpdatedAt)
 
-	suite.Equal(v1.Id, v2.Id)
-	suite.Equal(v1.Id, v3.Id)
+	suite.Equal(v1.ID, v2.ID)
+	suite.Equal(v1.ID, v3.ID)
 	suite.Equal(v1.CreatedAt, v2.CreatedAt)
 	suite.Equal(v1.CreatedAt, v3.CreatedAt)
 }

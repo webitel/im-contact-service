@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/webitel/im-contact-service/internal/domain/model"
+	"github.com/webitel/im-contact-service/internal/model"
 )
 
 const (
@@ -28,11 +28,11 @@ var _ Event = (*ContactCreated)(nil)
 func NewContactCreated(m *model.Contact) *ContactCreated {
 	return &ContactCreated{
 		Base: Base{
-			ID:        m.Id,
+			ID:        m.ID,
 			TopicName: ContactCreatedTopic,
 			Timestamp: m.CreatedAt,
 		},
-		ContactID:     m.Id,
+		ContactID:     m.ID,
 		Name:          m.Name,
 		Username:      m.Username,
 		Type:          m.Type,
@@ -54,11 +54,11 @@ var _ Event = (*ContactUpdated)(nil)
 func NewContactUpdated(m *model.Contact) *ContactUpdated {
 	return &ContactUpdated{
 		Base: Base{
-			ID:        m.Id,
+			ID:        m.ID,
 			TopicName: ContactUpdatedTopic,
 			Timestamp: m.UpdatedAt,
 		},
-		ContactID: m.Id,
+		ContactID: m.ID,
 		Name:      m.Name,
 		Username:  m.Username,
 		Type:      m.Type,

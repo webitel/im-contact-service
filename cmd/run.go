@@ -7,7 +7,7 @@ import (
 
 	"github.com/webitel/im-contact-service/cmd/migrate"
 	"github.com/webitel/im-contact-service/cmd/server"
-	"github.com/webitel/im-contact-service/internal/domain/model"
+	"github.com/webitel/im-contact-service/internal/model"
 )
 
 func Run() error {

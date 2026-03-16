@@ -5,28 +5,18 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/webitel/im-contact-service/internal/domain/events"
-	"github.com/webitel/im-contact-service/internal/domain/model"
 	"github.com/webitel/im-contact-service/internal/handler/amqp"
-	"github.com/webitel/im-contact-service/internal/service/dto"
+	"github.com/webitel/im-contact-service/internal/model"
 	"github.com/webitel/im-contact-service/internal/store"
 	"github.com/webitel/im-contact-service/internal/store/queries"
 	"github.com/webitel/webitel-go-kit/pkg/errors"
 )
 
-// Contacter defines the primary API for managing contacts.
-type Contacter interface {
-	Search(ctx context.Context, filter *dto.ContactSearchFilter) ([]*model.Contact, error)
-	Create(ctx context.Context, input *model.Contact) (*model.Contact, error)
-	Update(ctx context.Context, input *dto.UpdateContactCommand) (*model.Contact, error)
-	Delete(ctx context.Context, input *dto.DeleteContactCommand) error
-	CanSend(ctx context.Context, query *dto.CanSendQuery) error
-	Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, error)
-	PartialUpdate(ctx context.Context, cmd *dto.PartialUpdateContactCommand) (*model.Contact, error)
-}
+
 
 var (
-	_ Contacter                      = &ContactService{}
-	_ amqp.DomainEventsHandler = &ContactService{}
+	_ ContactService                      = &contactService{}
+	_ amqp.DomainEventsHandler = &contactService{}
 )
 
 // EventPublisher defines the contract for publishing domain events.
@@ -35,21 +25,21 @@ type EventPublisher interface {
 	Publish(ctx context.Context, event events.Event) error
 }
 
-type ContactService struct {
+type contactService struct {
 	store     store.ContactStore
 	publisher EventPublisher
 }
 
 // NewContactService creates a new ContactService instance.
-func NewContactService(store store.ContactStore, publisher EventPublisher) *ContactService {
-	return &ContactService{
+func NewContactService(store store.ContactStore, publisher EventPublisher) ContactService {
+	return &contactService{
 		store:     store,
 		publisher: publisher,
 	}
 }
 
 // Search retrieves contacts based on the provided filter.
-func (s *ContactService) Search(ctx context.Context, filter *dto.ContactSearchFilter) ([]*model.Contact, error) {
+func (s *contactService) Search(ctx context.Context, filter *model.ContactSearchRequest) ([]*model.Contact, error) {
 	if filter == nil {
 		return nil, errors.InvalidArgument("filter is required")
 	}
@@ -57,7 +47,7 @@ func (s *ContactService) Search(ctx context.Context, filter *dto.ContactSearchFi
 }
 
 // Create persists a new contact and publishes a ContactCreatedEvent.
-func (s *ContactService) Create(ctx context.Context, input *model.Contact) (*model.Contact, error) {
+func (s *contactService) Create(ctx context.Context, input *model.Contact) (*model.Contact, error) {
 	if err := s.validateCreate(input); err != nil {
 		return nil, err
 	}
@@ -82,7 +72,7 @@ func (s *ContactService) Create(ctx context.Context, input *model.Contact) (*mod
 }
 
 // Upsert persists a new contact and publishes a ContactCreatedEvent or updates an existing contact and publishes a ContactUpdatedEvent.
-func (s *ContactService) Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, error) {
+func (s *contactService) Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, error) {
 	if err := s.validateCreate(contact); err != nil {
 		return nil, err
 	}
@@ -108,8 +98,8 @@ func (s *ContactService) Upsert(ctx context.Context, contact *model.Contact) (*m
 }
 
 // Update modifies an existing contact and publishes a ContactUpdatedEvent.
-func (s *ContactService) Update(ctx context.Context, input *dto.UpdateContactCommand) (*model.Contact, error) {
-	if input == nil || input.Id == uuid.Nil {
+func (s *contactService) Update(ctx context.Context, input *model.UpdateContactRequest) (*model.Contact, error) {
+	if input == nil || input.ID == uuid.Nil {
 		return nil, errors.InvalidArgument("input with a valid ID is required")
 	}
 
@@ -127,11 +117,11 @@ func (s *ContactService) Update(ctx context.Context, input *dto.UpdateContactCom
 }
 
 // Delete removes a contact and publishes a ContactDeletedEvent.
-func (s *ContactService) Delete(ctx context.Context, input *dto.DeleteContactCommand) error {
-	if input.Id == uuid.Nil {
+func (s *contactService) Delete(ctx context.Context, input *model.DeleteContactRequest) error {
+	if input.ID == uuid.Nil {
 		return errors.InvalidArgument("id is required")
 	}
-	if input.DomainId == 0 {
+	if input.DomainID == 0 {
 		return errors.InvalidArgument("domainId is required")
 	}
 
@@ -140,16 +130,16 @@ func (s *ContactService) Delete(ctx context.Context, input *dto.DeleteContactCom
 	}
 
 	// Event handles its own topic and timestamp logic.
-	return s.publisher.Publish(ctx, events.NewContactDeleted(input.Id))
+	return s.publisher.Publish(ctx, events.NewContactDeleted(input.ID))
 }
 
 // CanSend checks if a message can be sent to/from a contact.
-func (s *ContactService) CanSend(ctx context.Context, query *dto.CanSendQuery) error {
+func (s *contactService) CanSend(ctx context.Context, query *model.CanSendRequest) error {
 	if query == nil {
 		return errors.InvalidArgument("query is required")
 	}
 
-	usersPeers, err := s.store.Search(ctx, &dto.ContactSearchFilter{Ids: []uuid.UUID{query.From.Id, query.To.Id}, DomainId: query.DomainId})
+	usersPeers, err := s.store.Search(ctx, &model.ContactSearchRequest{IDs: []uuid.UUID{query.From, query.To}, DomainID: query.DomainID})
 	if err != nil {
 		return err
 	}
@@ -171,7 +161,7 @@ func (s *ContactService) CanSend(ctx context.Context, query *dto.CanSendQuery) e
 	return nil
 }
 
-func (s *ContactService) DeleteByDomain(ctx context.Context, domainId int) error {
+func (s *contactService) DeleteByDomain(ctx context.Context, domainId int) error {
 	err := s.store.ClearByDomain(ctx, domainId)
 	if err != nil {
 		return err
@@ -180,7 +170,7 @@ func (s *ContactService) DeleteByDomain(ctx context.Context, domainId int) error
 }
 
 
-func (s *ContactService) DeleteBotByFlowID(ctx context.Context, flowID string) error {
+func (s *contactService) DeleteBotByFlowID(ctx context.Context, flowID string) error {
 	if flowID == "" {
 		return errors.InvalidArgument("flow id required to delete bot by flow id")
 	}
@@ -191,7 +181,7 @@ func (s *ContactService) DeleteBotByFlowID(ctx context.Context, flowID string) e
 	return nil
 }
 
-func (s *ContactService) PartialUpdate(ctx context.Context, cmd *dto.PartialUpdateContactCommand) (*model.Contact, error) {
+func (s *contactService) PartialUpdate(ctx context.Context, cmd *model.PartialUpdateContactRequest) (*model.Contact, error) {
 	if cmd.ID == uuid.Nil || cmd.DomainID <= 0 {
 		return nil, errors.InvalidArgument("ID and DomainID are required fields!")
 	}
@@ -205,9 +195,9 @@ func (s *ContactService) PartialUpdate(ctx context.Context, cmd *dto.PartialUpda
 	case "username":
 		query.WithUsername(cmd.Username)
 	case "metadata":
-		query.WithMetadata(cmd.MD)
+		query.WithMetadata(cmd.Metadata)
 	case "subject":
-		query.WithSubject(cmd.Sub)
+		query.WithSubject(cmd.Subject)
 	}
 	}
 	
@@ -220,7 +210,7 @@ func (s *ContactService) PartialUpdate(ctx context.Context, cmd *dto.PartialUpda
 }
 
 // validateCreate performs business rules validation for new contacts.
-func (s *ContactService) validateCreate(input *model.Contact) error {
+func (s *contactService) validateCreate(input *model.Contact) error {
 	if input == nil {
 		return errors.InvalidArgument("input is nil")
 	}
