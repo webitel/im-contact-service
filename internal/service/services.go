@@ -20,7 +20,6 @@ type ContactService interface {
 	Create(ctx context.Context, input *model.Contact) (*model.Contact, error)
 	Update(ctx context.Context, input *model.UpdateContactRequest) (*model.Contact, error)
 	Delete(ctx context.Context, input *model.DeleteContactRequest) error
-	CanSend(ctx context.Context, query *model.CanSendRequest) error
 	Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, error)
 	PartialUpdate(ctx context.Context, cmd *model.PartialUpdateContactRequest) (*model.Contact, error)
     DeleteByDomain(ctx context.Context, domainId int) error 

@@ -151,7 +151,6 @@ func (c *PrivacyInMapperImpl) ConvertCanInviteRequest(source *v1.CanInviteReques
 	var pModelCanInviteRequest *model.CanInviteRequest
 	if source != nil {
 		var modelCanInviteRequest model.CanInviteRequest
-		modelCanInviteRequest.DomainID = mapper.ConvertInt64ToInt((*source).DomainId)
 		uuidUUID, err := uuid.Parse((*source).From)
 		if err != nil {
 			return nil, err
@@ -170,7 +169,6 @@ func (c *PrivacyInMapperImpl) ConvertCanSendRequest(source *v1.CanSendRequest) (
 	var pModelCanSendRequest *model.CanSendRequest
 	if source != nil {
 		var modelCanSendRequest model.CanSendRequest
-		modelCanSendRequest.DomainID = mapper.ConvertInt64ToInt((*source).DomainId)
 		uuidUUID, err := uuid.Parse((*source).From)
 		if err != nil {
 			return nil, err

@@ -44,7 +44,7 @@ func (c *ContactPrivacyServer) CanSend(ctx context.Context, request *impb.CanSen
 		return nil, err
 	}
 
-	return &impb.CanSendResponse{Can: true}, nil
+	return &impb.CanSendResponse{}, nil
 	
 }
 func (c *ContactPrivacyServer) CanInvite(ctx context.Context, request *impb.CanInviteRequest) (*impb.CanInviteResponse, error) {
@@ -58,7 +58,7 @@ func (c *ContactPrivacyServer) CanInvite(ctx context.Context, request *impb.CanI
 		return nil, err
 	}
 
-	return &impb.CanInviteResponse{Can: true}, nil
+	return &impb.CanInviteResponse{}, nil
 	
 }
 

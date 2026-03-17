@@ -72,13 +72,11 @@ type (
 	}
 
 	CanSendRequest struct {
-		DomainID int
 		From     uuid.UUID `json:"from"`
 		To       uuid.UUID`json:"to"`
 	}
 
 	CanInviteRequest struct {
-		DomainID int
 		From uuid.UUID
 		To uuid.UUID
 	}

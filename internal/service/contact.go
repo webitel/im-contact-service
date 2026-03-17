@@ -133,33 +133,7 @@ func (s *contactService) Delete(ctx context.Context, input *model.DeleteContactR
 	return s.publisher.Publish(ctx, events.NewContactDeleted(input.ID))
 }
 
-// CanSend checks if a message can be sent to/from a contact.
-func (s *contactService) CanSend(ctx context.Context, query *model.CanSendRequest) error {
-	if query == nil {
-		return errors.InvalidArgument("query is required")
-	}
 
-	usersPeers, err := s.store.Search(ctx, &model.ContactSearchRequest{IDs: []uuid.UUID{query.From, query.To}, DomainID: query.DomainID})
-	if err != nil {
-		return err
-	}
-
-
-	switch (len(usersPeers)) {
-	case 0:
-		return errors.NotFound("no contacts found for the provided IDs")
-	case 1:
-		if query.From != query.To {
-			return errors.NotFound("no contacts found for the provided IDs")
-		}
-	case 2:
-		return nil
-	default:
-		return errors.InvalidArgument("too many contacts found for the provided IDs")
-	}
-
-	return nil
-}
 
 func (s *contactService) DeleteByDomain(ctx context.Context, domainId int) error {
 	err := s.store.ClearByDomain(ctx, domainId)
