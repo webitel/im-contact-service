@@ -11,7 +11,7 @@ permissions: { contents: read }
 jobs:
   publish:
     name: Publish .deb package
-    uses: webitel/reusable-workflows/.github/workflows/_publish-deb.yml@v1.0.6
+    uses: webitel/reusable-workflows/.github/workflows/_publish-deb.yml@v2.0.3
     permissions:
       id-token: write
       actions: read
