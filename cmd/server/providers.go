@@ -15,6 +15,8 @@ import (
 
 	"github.com/webitel/webitel-go-kit/infra/discovery"
 	otelsdk "github.com/webitel/webitel-go-kit/infra/otel/sdk"
+	"github.com/webitel/webitel-go-kit/infra/profiler"
+	"github.com/webitel/webitel-go-kit/pkg/logger"
 
 	"github.com/webitel/im-contact-service/config"
 	"github.com/webitel/im-contact-service/internal/model"
@@ -233,4 +235,12 @@ func ProvideNewDBConnection(cfg *config.Config, l *slog.Logger, lc fx.Lifecycle)
 	})
 
 	return db, err
+}
+
+func ProvideProfiler(cfg *config.Config, log *slog.Logger) (profiler.Config, logger.Logger) {
+	return profiler.Config{
+		Addr:                 cfg.Profiler.Addr,
+		MutexProfileFraction: cfg.Profiler.MutexProfileFraction,
+		BlockProfileRate:     cfg.Profiler.BlockProfileRate,
+	}, logger.NewSlog(log)
 }
