@@ -21,16 +21,12 @@ var _ impb.ContactsServer = &ContactServer{}
 type ContactServer struct {
 	impb.UnimplementedContactsServer
 
-	logger  *slog.Logger
-	handler service.ContactService
+	logger   *slog.Logger
+	handler  service.ContactService
 	inMapper mapper.ContactInConverter
 }
 
-
-
-
-
-func NewContactService(handler service.ContactService, logger *slog.Logger) *ContactServer{
+func NewContactService(handler service.ContactService, logger *slog.Logger) *ContactServer {
 	return &ContactServer{handler: handler, logger: logger}
 }
 
@@ -44,7 +40,7 @@ func (c *ContactServer) SearchContact(ctx context.Context, request *impb.SearchC
 		return parsed
 	})
 	page, size := ParsePagination(request.GetPage(), request.GetSize())
-
+	domainID := int(request.GetDomainId())
 	contacts, err := c.handler.Search(ctx, &model.ContactSearchRequest{
 		Page:     page,
 		Size:     size, // + 1,
@@ -55,7 +51,7 @@ func (c *ContactServer) SearchContact(ctx context.Context, request *impb.SearchC
 		Issuers:  request.GetIssId(),
 		Types:    request.GetType(),
 		Subjects: request.GetSubjects(),
-		DomainID: int(request.GetDomainId()),
+		DomainID: &domainID,
 		IDs:      ids,
 		OnlyBots: request.OnlyBots,
 	})
@@ -95,7 +91,7 @@ func (c *ContactServer) CreateContact(ctx context.Context, request *impb.CreateC
 		Username:      request.GetUsername(),
 		Metadata:      request.GetMetadata(),
 		SubjectId:     request.GetSubject(),
-		IsBot: request.GetIsBot(),
+		IsBot:         request.GetIsBot(),
 	})
 	if err != nil {
 		return nil, err

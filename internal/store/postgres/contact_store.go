@@ -51,7 +51,7 @@ func (c *contactStore) Create(ctx context.Context, contact *model.Contact) (*mod
 			"name":           contact.Name,
 			"username":       contact.Username,
 			"metadata":       contact.Metadata,
-			"is_bot": contact.IsBot,
+			"is_bot":         contact.IsBot,
 		}
 		result *model.Contact
 	)
@@ -64,7 +64,7 @@ func (c *contactStore) Create(ctx context.Context, contact *model.Contact) (*mod
 	if result, err = pgx.CollectExactlyOneRow(row, pgx.RowToAddrOfStructByNameLax[model.Contact]); err != nil {
 		return nil, fmt.Errorf("failed to create contact: %v", err)
 	}
-	
+
 	return result, nil
 }
 
@@ -110,7 +110,7 @@ func (c *contactStore) Search(ctx context.Context, filter *model.ContactSearchRe
 		query = fmt.Sprintf(`
         SELECT %s
         FROM im_contact.contact
-        WHERE domain_id = @domain_id
+        WHERE (@domain_id::int IS NULL OR domain_id = @domain_id)
             AND (@ids::uuid[] IS NULL OR id = ANY(@ids::uuid[]))
             AND (@Q::text IS NULL OR username ILIKE @Q OR name ILIKE @Q)
             AND (@apps::text[] IS NULL OR application_id = ANY(@apps::text[]))
@@ -131,7 +131,7 @@ func (c *contactStore) Search(ctx context.Context, filter *model.ContactSearchRe
 			"limit":     limit + 1,
 			"offset":    offset,
 			"subjects":  arrayOrNull(filter.Subjects),
-			"is_bot": filter.OnlyBots,
+			"is_bot":    filter.OnlyBots,
 		}
 		contacts []*model.Contact
 	)
@@ -190,7 +190,7 @@ func (c *contactStore) Update(ctx context.Context, updater *model.UpdateContactR
 	if result, err = pgx.CollectExactlyOneRow(rows, pgx.RowToAddrOfStructByNameLax[model.Contact]); err != nil {
 		return nil, fmt.Errorf("error creating contact: %v", err)
 	}
-	
+
 	return result, nil
 }
 
@@ -218,7 +218,7 @@ func (c *contactStore) DeleteBotByFlowID(ctx context.Context, flowID string) err
 			where is_bot = TRUE AND subject_id = @flow_id 
 		`
 		args = pgx.NamedArgs{
-			"flow_id":flowID,
+			"flow_id": flowID,
 		}
 	)
 
@@ -250,7 +250,6 @@ func (c *contactStore) PartialUpdate(ctx context.Context, query queries.Query) (
 
 	return contact, nil
 }
-
 
 func (c *contactStore) Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, bool, error) {
 	var (
@@ -289,17 +288,17 @@ func (c *contactStore) Upsert(ctx context.Context, contact *model.Contact) (*mod
 				(xmax = 0) as is_insert
 		`
 		args = pgx.NamedArgs{
-			"DomainId": contact.DomainID,
-			"IssuerId": contact.IssuerId,
-			"SubjectId": contact.SubjectId,
+			"DomainId":      contact.DomainID,
+			"IssuerId":      contact.IssuerId,
+			"SubjectId":     contact.SubjectId,
 			"ApplicationId": contact.ApplicationId,
-			"Type": contact.Type,
-			"Name": contact.Name,
-			"Username": contact.Username,
-			"Metadata": contact.Metadata,
+			"Type":          contact.Type,
+			"Name":          contact.Name,
+			"Username":      contact.Username,
+			"Metadata":      contact.Metadata,
 		}
-		result model.Contact
-		isInsert bool 
+		result   model.Contact
+		isInsert bool
 	)
 
 	if err := c.db.Master().QueryRow(ctx, query, args).Scan(

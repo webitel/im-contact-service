@@ -171,7 +171,7 @@ func (suite *ContactStoreTestSuite) TestCreate_WithNilMetadata() {
 	suite.True(len(created.Metadata) == 0)
 }
 
-//#endregion
+// #endregion
 
 // #region Search
 func (suite *ContactStoreTestSuite) TestSearch_NoFilters() {
@@ -179,11 +179,11 @@ func (suite *ContactStoreTestSuite) TestSearch_NoFilters() {
 	suite.Require().NoError(err)
 	_, err = suite.repo.Create(suite.ctx, newContact(1))
 	suite.Require().NoError(err)
-
+	domainID := 1
 	res, err := suite.repo.Search(suite.ctx, &model.ContactSearchRequest{
 		Page:     1,
 		Size:     10,
-		DomainID: 1,
+		DomainID: &domainID,
 	})
 
 	suite.Require().NoError(err)
@@ -202,13 +202,13 @@ func (suite *ContactStoreTestSuite) TestSearch_Q_ByName() {
 	suite.Require().NoError(err)
 
 	q := "Ang"
-
+	domainID := 1
 	res, err := suite.repo.Search(suite.ctx, &model.ContactSearchRequest{
 		Page:     1,
 		Size:     10,
 		Q:        &q,
 		Fields:   []string{"name", "id"},
-		DomainID: 1,
+		DomainID: &domainID,
 	})
 
 	suite.Require().NoError(err)
@@ -226,12 +226,12 @@ func (suite *ContactStoreTestSuite) TestSearch_ByApplication() {
 
 	_, err = suite.repo.Create(suite.ctx, newContact(1))
 	suite.Require().NoError(err)
-
+	domainID := 1
 	res, err := suite.repo.Search(suite.ctx, &model.ContactSearchRequest{
 		Page:     1,
 		Size:     10,
 		Apps:     []string{appID.String()},
-		DomainID: 1,
+		DomainID: &domainID,
 	})
 
 	suite.Require().NoError(err)
@@ -245,12 +245,12 @@ func (suite *ContactStoreTestSuite) TestSearch_ByIssuer() {
 		c.IssuerId = issuer.String()
 	}))
 	suite.Require().NoError(err)
-
+	domainID := 1
 	res, err := suite.repo.Search(suite.ctx, &model.ContactSearchRequest{
 		Page:     1,
 		Size:     10,
 		Issuers:  []string{issuer.String()},
-		DomainID: 1,
+		DomainID: &domainID,
 	})
 
 	suite.Require().NoError(err)
@@ -263,11 +263,12 @@ func (suite *ContactStoreTestSuite) TestSearch_Pagination() {
 			c.Username = faker.Username()
 		}))
 	}
+	domainID := 1
 
 	res, err := suite.repo.Search(suite.ctx, &model.ContactSearchRequest{
 		Page:     2,
 		Size:     10,
-		DomainID: 1,
+		DomainID: &domainID,
 	})
 
 	suite.Require().NoError(err)
@@ -276,12 +277,13 @@ func (suite *ContactStoreTestSuite) TestSearch_Pagination() {
 
 func (suite *ContactStoreTestSuite) TestSearch_EmptyResult() {
 	q := "does-not-exist"
+	domainID := 1
 
 	res, err := suite.repo.Search(suite.ctx, &model.ContactSearchRequest{
 		Page:     1,
 		Size:     10,
 		Q:        &q,
-		DomainID: 1,
+		DomainID: &domainID,
 	})
 
 	suite.Require().NoError(err)
@@ -354,11 +356,11 @@ func (suite *ContactStoreTestSuite) TestDelete_HappyPath() {
 	}
 	err := suite.repo.Delete(suite.ctx, command)
 	suite.Require().NoError(err)
-
+	domainID := 1
 	res, _ := suite.repo.Search(suite.ctx, &model.ContactSearchRequest{
 		Page:     1,
 		Size:     10,
-		DomainID: 1,
+		DomainID: &domainID,
 	})
 
 	suite.Empty(res)
@@ -375,11 +377,12 @@ func (suite *ContactStoreTestSuite) TestClearByDomain() {
 
 	err := suite.repo.ClearByDomain(suite.ctx, 1)
 	suite.Require().NoError(err)
+	domainID := 1
 
 	res, _ := suite.repo.Search(suite.ctx, &model.ContactSearchRequest{
 		Page:     1,
 		Size:     6,
-		DomainID: 2,
+		DomainID: &domainID,
 	})
 
 	suite.Len(res, 5)

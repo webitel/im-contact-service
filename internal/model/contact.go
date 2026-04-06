@@ -12,7 +12,7 @@ type Contact struct {
 	Name     string            `json:"name" db:"name"`
 	Username string            `json:"username" db:"username"`
 	Metadata map[string]string `json:"metadata" db:"metadata"`
-	IsBot bool `jsob:"is_bot" db:"is_bot"`
+	IsBot    bool              `jsob:"is_bot" db:"is_bot"`
 }
 
 func (c *Contact) Equal(compare *Contact) bool {
@@ -35,10 +35,9 @@ func ContactAllowedFields() []string {
 		"id", "domain_id", "created_at", "updated_at", "subject_id", "is_bot"}
 }
 
-
 type (
 	ContactSearchRequest struct {
-		DomainID int         `json:"domain_id"`
+		DomainID *int        `json:"domain_id"`
 		IDs      []uuid.UUID `json:"ids"`
 		Page     int32       `json:"page"`
 		Size     int32       `json:"size"`
@@ -49,7 +48,7 @@ type (
 		Issuers  []string    `json:"issuers"`
 		Types    []string    `json:"types"`
 		Subjects []string    `json:"subjects"`
-		OnlyBots *bool `json:"is_bot"`
+		OnlyBots *bool       `json:"is_bot"`
 	}
 
 	UpdateContactRequest struct {
@@ -66,19 +65,19 @@ type (
 		DomainID int               `json:"domain_id"`
 		Name     string            `json:"name"`
 		Username string            `json:"username"`
-		Metadata       map[string]string `json:"md"`
-		Subject      string            `json:"sub"`
-		Fields []string
+		Metadata map[string]string `json:"md"`
+		Subject  string            `json:"sub"`
+		Fields   []string
 	}
 
 	CanSendRequest struct {
-		From     uuid.UUID `json:"from"`
-		To       uuid.UUID`json:"to"`
+		From uuid.UUID `json:"from"`
+		To   uuid.UUID `json:"to"`
 	}
 
 	CanInviteRequest struct {
 		From uuid.UUID
-		To uuid.UUID
+		To   uuid.UUID
 	}
 
 	DeleteContactRequest struct {

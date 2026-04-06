@@ -61,64 +61,6 @@ func (c *ContactInConverterImpl) ConvertPartialUpdateRequest(source *v1.PatchCon
 	}
 	return pModelPartialUpdateContactRequest, nil
 }
-func (c *ContactInConverterImpl) ConvertSearchRequest(source *v1.SearchContactRequest) (*model.ContactSearchRequest, error) {
-	var pModelContactSearchRequest *model.ContactSearchRequest
-	if source != nil {
-		var modelContactSearchRequest model.ContactSearchRequest
-		modelContactSearchRequest.DomainID = mapper.ConvertInt32ToInt((*source).DomainId)
-		if (*source).Ids != nil {
-			modelContactSearchRequest.IDs = make([]uuid.UUID, len((*source).Ids))
-			for i := 0; i < len((*source).Ids); i++ {
-				uuidUUID, err := uuid.Parse((*source).Ids[i])
-				if err != nil {
-					return nil, err
-				}
-				modelContactSearchRequest.IDs[i] = uuidUUID
-			}
-		}
-		modelContactSearchRequest.Page = (*source).Page
-		modelContactSearchRequest.Size = (*source).Size
-		pString := (*source).Q
-		modelContactSearchRequest.Q = &pString
-		modelContactSearchRequest.Sort = (*source).Sort
-		if (*source).Fields != nil {
-			modelContactSearchRequest.Fields = make([]string, len((*source).Fields))
-			for j := 0; j < len((*source).Fields); j++ {
-				modelContactSearchRequest.Fields[j] = (*source).Fields[j]
-			}
-		}
-		if (*source).AppId != nil {
-			modelContactSearchRequest.Apps = make([]string, len((*source).AppId))
-			for k := 0; k < len((*source).AppId); k++ {
-				modelContactSearchRequest.Apps[k] = (*source).AppId[k]
-			}
-		}
-		if (*source).IssId != nil {
-			modelContactSearchRequest.Issuers = make([]string, len((*source).IssId))
-			for l := 0; l < len((*source).IssId); l++ {
-				modelContactSearchRequest.Issuers[l] = (*source).IssId[l]
-			}
-		}
-		if (*source).Type != nil {
-			modelContactSearchRequest.Types = make([]string, len((*source).Type))
-			for m := 0; m < len((*source).Type); m++ {
-				modelContactSearchRequest.Types[m] = (*source).Type[m]
-			}
-		}
-		if (*source).Subjects != nil {
-			modelContactSearchRequest.Subjects = make([]string, len((*source).Subjects))
-			for n := 0; n < len((*source).Subjects); n++ {
-				modelContactSearchRequest.Subjects[n] = (*source).Subjects[n]
-			}
-		}
-		if (*source).OnlyBots != nil {
-			xbool := *(*source).OnlyBots
-			modelContactSearchRequest.OnlyBots = &xbool
-		}
-		pModelContactSearchRequest = &modelContactSearchRequest
-	}
-	return pModelContactSearchRequest, nil
-}
 func (c *ContactInConverterImpl) ConvertUpdateRequest(source *v1.UpdateContactRequest) (*model.UpdateContactRequest, error) {
 	var pModelUpdateContactRequest *model.UpdateContactRequest
 	if source != nil {
