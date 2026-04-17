@@ -132,11 +132,16 @@ func (c *SettingsInConverterImpl) ConvertGetSettingsRequest(source *v1.GetContac
 	var pModelGetContactSettingsRequest *model.GetContactSettingsRequest
 	if source != nil {
 		var modelGetContactSettingsRequest model.GetContactSettingsRequest
-		uuidUUID, err := uuid.Parse((*source).ContactId)
+		uuidUUID, err := mapper.ConvertOptionalUUID((*source).InitiatorContactId)
 		if err != nil {
 			return nil, err
 		}
-		modelGetContactSettingsRequest.ContactID = uuidUUID
+		modelGetContactSettingsRequest.InitiatorContactID = uuidUUID
+		uuidUUID2, err := uuid.Parse((*source).ContactId)
+		if err != nil {
+			return nil, err
+		}
+		modelGetContactSettingsRequest.ContactID = uuidUUID2
 		pModelGetContactSettingsRequest = &modelGetContactSettingsRequest
 	}
 	return pModelGetContactSettingsRequest, nil
@@ -145,11 +150,16 @@ func (c *SettingsInConverterImpl) ConvertUpdateSettingsRequest(source *v1.Update
 	var pModelUpdateContactSettingsRequest *model.UpdateContactSettingsRequest
 	if source != nil {
 		var modelUpdateContactSettingsRequest model.UpdateContactSettingsRequest
-		uuidUUID, err := uuid.Parse((*source).ContactId)
+		uuidUUID, err := mapper.ConvertOptionalUUID((*source).IntiatorContactId)
 		if err != nil {
 			return nil, err
 		}
-		modelUpdateContactSettingsRequest.ContactID = uuidUUID
+		modelUpdateContactSettingsRequest.InitiatorContactID = uuidUUID
+		uuidUUID2, err := uuid.Parse((*source).ContactId)
+		if err != nil {
+			return nil, err
+		}
+		modelUpdateContactSettingsRequest.ContactID = uuidUUID2
 		if (*source).AllowInvitesFrom != nil {
 			modelUserFilter := mapper.ConvertInUserFilter(*(*source).AllowInvitesFrom)
 			modelUpdateContactSettingsRequest.AllowInvitesFrom = &modelUserFilter

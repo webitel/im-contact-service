@@ -15,6 +15,14 @@ func ConvertUUID(id uuid.UUID) string {
 	return id.String()
 }
 
+func ConvertOptionalUUID(in *string) (uuid.UUID, error) {
+	if in == nil {
+		return uuid.Nil, nil
+	}
+
+	return uuid.Parse(*in)
+}
+
 
 func ConvertTimeToInt64(in time.Time) int64 {
 	return in.UnixMilli()

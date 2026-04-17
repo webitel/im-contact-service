@@ -10,11 +10,14 @@ import (
 // goverter:converter
 // goverter:matchIgnoreCase
 // goverter:extend github.com/google/uuid:Parse
+// goverter:extend ConvertOptionalUUID
 // goverter:extend time:UnixMilli
 // goverter:extend ConvertInUserFilter
 type SettingsInConverter interface {
+	// goverter:useZeroValueOnPointerInconsistency
 	ConvertGetSettingsRequest(*contact.GetContactSettingsRequest) (*model.GetContactSettingsRequest, error)
 	// goverter:useZeroValueOnPointerInconsistency
+	// goverter:map IntiatorContactId InitiatorContactID
 	ConvertUpdateSettingsRequest(*contact.UpdateContactSettingsRequest) (*model.UpdateContactSettingsRequest, error)
 }
 
@@ -27,7 +30,3 @@ type SettingsInConverter interface {
 type SettingsOutConverter interface {
 	ConvertSettings(*model.ContactSettings) (*contact.Settings, error)
 }
-
-
-
-

@@ -11,19 +11,18 @@ import (
 
 var _ impb.ContactSettingsServer = &ContactSettingsServer{}
 
-
 type ContactSettingsServer struct {
 	impb.UnimplementedContactSettingsServer
 
-	service service.ContactSettingsService
-	inConverter mapper.SettingsInConverter
+	service      service.ContactSettingsService
+	inConverter  mapper.SettingsInConverter
 	outConverter mapper.SettingsOutConverter
 }
 
 func NewContactSettingsServer(handler service.ContactSettingsService) (*ContactSettingsServer, error) {
 	return &ContactSettingsServer{
-		service: handler,
-		inConverter: &generated.SettingsInConverterImpl{},
+		service:      handler,
+		inConverter:  &generated.SettingsInConverterImpl{},
 		outConverter: &generated.SettingsOutConverterImpl{},
 	}, nil
 
@@ -53,6 +52,5 @@ func (c *ContactSettingsServer) Update(ctx context.Context, req *impb.UpdateCont
 		return nil, err
 	}
 	return c.outConverter.ConvertSettings(settings)
-	
-}
 
+}
