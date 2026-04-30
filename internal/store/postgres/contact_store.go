@@ -6,8 +6,10 @@ import (
 	"strings"
 
 	"github.com/webitel/webitel-go-kit/pkg/errors"
+	"google.golang.org/grpc/codes"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/webitel/im-contact-service/infra/db/pg"
 	"github.com/webitel/im-contact-service/internal/model"
 	"github.com/webitel/im-contact-service/internal/store"
@@ -58,11 +60,18 @@ func (c *contactStore) Create(ctx context.Context, contact *model.Contact) (*mod
 
 	row, err := c.db.Master().Query(ctx, query, args)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create contact: %v", err)
+		return nil, errors.Internal("executing create contact query", errors.WithID("postgres.contact_store.create"), errors.WithCause(err))
 	}
 
 	if result, err = pgx.CollectExactlyOneRow(row, pgx.RowToAddrOfStructByNameLax[model.Contact]); err != nil {
-		return nil, fmt.Errorf("failed to create contact: %v", err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case "23505":
+				return nil, errors.New("conflict: contact already exists", errors.WithCause(err), errors.WithCode(codes.AlreadyExists), errors.WithID("postgres.contact_store.create"))
+			}
+		}
+		return nil, errors.Internal("collecting create contact query result", errors.WithCause(err), errors.WithID("postgres.contact_store.create"))
 	}
 
 	return result, nil
@@ -215,7 +224,7 @@ func (c *contactStore) DeleteBotByFlowID(ctx context.Context, flowID string) err
 	var (
 		query = `
 			delete from im_contact.contact
-			where is_bot = TRUE AND subject_id = @flow_id 
+			where is_bot = TRUE AND subject_id = @flow_id
 		`
 		args = pgx.NamedArgs{
 			"flow_id": flowID,
@@ -265,7 +274,7 @@ func (c *contactStore) Upsert(ctx context.Context, contact *model.Contact) (*mod
 				metadata
 			) values (
 				@DomainId, @IssuerId, @SubjectId, @ApplicationId, @Type,
-				@Name, @Username, @Metadata 
+				@Name, @Username, @Metadata
 			)
 			on conflict (domain_id, issuer_id, subject_id)
 			do update set
