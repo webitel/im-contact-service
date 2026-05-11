@@ -3,15 +3,16 @@ package service
 import (
 	"context"
 
+	"go.uber.org/fx"
+
 	pubsubadapter "github.com/webitel/im-contact-service/internal/adapter/pubsub"
 	"github.com/webitel/im-contact-service/internal/handler/amqp"
 	"github.com/webitel/im-contact-service/internal/model"
-	"go.uber.org/fx"
 )
 
 type ContactSettingsService interface {
 	Get(ctx context.Context, req *model.GetContactSettingsRequest) (*model.ContactSettings, error)
-	Update(ctx context.Context, request *model.UpdateContactSettingsRequest) (*model.ContactSettings, error) 
+	Update(ctx context.Context, request *model.UpdateContactSettingsRequest) (*model.ContactSettings, error)
 	Create(ctx context.Context, request *model.CreateContactSettingsRequest) (*model.ContactSettings, error)
 }
 
@@ -22,39 +23,47 @@ type ContactService interface {
 	Delete(ctx context.Context, input *model.DeleteContactRequest) error
 	Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, error)
 	PartialUpdate(ctx context.Context, cmd *model.PartialUpdateContactRequest) (*model.Contact, error)
-    DeleteByDomain(ctx context.Context, domainId int) error 
-    DeleteBotByFlowID(ctx context.Context, flowID string) error 
+	DeleteByDomain(ctx context.Context, domainID int) error
+	DeleteBotByFlowID(ctx context.Context, flowID string) error
 }
 
 type ContactPrivacyService interface {
-    CanSend(ctx context.Context, query *model.CanSendRequest) error 
-    CanInvite(ctx context.Context, query *model.CanInviteRequest) error
+	CanSend(ctx context.Context, query *model.CanSendRequest) error
+	CanInvite(ctx context.Context, query *model.CanInviteRequest) error
+}
 
+type ViaService interface {
+	Create(ctx context.Context, communication *model.ViaCommunication) (*model.ViaCommunication, error)
+	Update(ctx context.Context, communication *model.ViaCommunication) (*model.ViaCommunication, error)
+	PartialUpdate(ctx context.Context, updateCommand *model.CommunicationViaPartialUpdateCmd) (*model.ViaCommunication, error)
+	Search(ctx context.Context, filter *model.SearchViaCommunicationsFilter) ([]*model.ViaCommunication, error)
 }
 
 var Module = fx.Module("service",
-    fx.Provide(
-        pubsubadapter.NewPublisherProvider,
-        func(pp *pubsubadapter.PublisherProvider) (EventPublisher, error) {
-            wmPub, err := pp.Build("im.contacts")
-            if err != nil {
-                return nil, err
-            }
-            return pubsubadapter.NewEventDispatcher(wmPub), nil
-        },
+	fx.Provide(
+		pubsubadapter.NewPublisherProvider,
+		func(pp *pubsubadapter.PublisherProvider) (EventPublisher, error) {
+			wmPub, err := pp.Build("im.contacts")
+			if err != nil {
+				return nil, err
+			}
 
-        pubsubadapter.NewSubscriberProvider,
-        amqp.NewMessageHandler,
-        amqp.NewWatermillRouter,
+			return pubsubadapter.NewEventDispatcher(wmPub), nil
+		},
 
-        fx.Annotate(
-            NewContactService,
-            fx.As(new(amqp.DomainEventsHandler)),
-            fx.As(fx.Self()),
-        ),
-        NewContactSettingService,
-        NewContactPrivacyService,
-    ),
+		pubsubadapter.NewSubscriberProvider,
+		amqp.NewMessageHandler,
+		amqp.NewWatermillRouter,
 
-    fx.Invoke(amqp.RegisterHandlers),
+		fx.Annotate(
+			NewContactService,
+			fx.As(new(amqp.DomainEventsHandler)),
+			fx.As(fx.Self()),
+		),
+		fx.Annotate(newCommunication, fx.As(new(ViaService))),
+		NewContactSettingService,
+		NewContactPrivacyService,
+	),
+
+	fx.Invoke(amqp.RegisterHandlers),
 )

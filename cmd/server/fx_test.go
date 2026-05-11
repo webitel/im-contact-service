@@ -3,8 +3,9 @@ package server
 import (
 	"testing"
 
-	"github.com/webitel/im-contact-service/config"
 	"go.uber.org/fx"
+
+	"github.com/webitel/im-contact-service/config"
 )
 
 func TestValidateApp(t *testing.T) {

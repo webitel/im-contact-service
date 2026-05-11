@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/webitel/webitel-go-kit/pkg/errors"
-	"google.golang.org/grpc/codes"
-
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"google.golang.org/grpc/codes"
+
+	"github.com/webitel/webitel-go-kit/pkg/errors"
+
 	"github.com/webitel/im-contact-service/infra/db/pg"
 	"github.com/webitel/im-contact-service/internal/model"
 	"github.com/webitel/im-contact-service/internal/store"
@@ -46,9 +47,9 @@ func (c *contactStore) Create(ctx context.Context, contact *model.Contact) (*mod
 		`
 		args = pgx.NamedArgs{
 			"domain_id":      contact.DomainID,
-			"issuer_id":      contact.IssuerId,
-			"subject_id":     contact.SubjectId,
-			"application_id": contact.ApplicationId,
+			"issuer_id":      contact.IssuerID,
+			"subject_id":     contact.SubjectID,
+			"application_id": contact.ApplicationID,
 			"type":           contact.Type,
 			"name":           contact.Name,
 			"username":       contact.Username,
@@ -66,11 +67,11 @@ func (c *contactStore) Create(ctx context.Context, contact *model.Contact) (*mod
 	if result, err = pgx.CollectExactlyOneRow(row, pgx.RowToAddrOfStructByNameLax[model.Contact]); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
-			switch pgErr.Code {
-			case "23505":
+			if pgErr.Code == "23505" {
 				return nil, errors.New("conflict: contact already exists", errors.WithCause(err), errors.WithCode(codes.AlreadyExists), errors.WithID("postgres.contact_store.create"))
 			}
 		}
+
 		return nil, errors.Internal("collecting create contact query result", errors.WithCause(err), errors.WithID("postgres.contact_store.create"))
 	}
 
@@ -93,6 +94,7 @@ func (c *contactStore) Delete(ctx context.Context, command *model.DeleteContactR
 	if _, err := c.db.Master().Exec(ctx, query, args); err != nil {
 		return fmt.Errorf("failed to delete contact: %v", err)
 	}
+
 	return nil
 }
 
@@ -161,6 +163,7 @@ func arrayOrNull[T any](v []T) any {
 	if len(v) > 0 {
 		return v
 	}
+
 	return nil
 }
 
@@ -203,20 +206,21 @@ func (c *contactStore) Update(ctx context.Context, updater *model.UpdateContactR
 	return result, nil
 }
 
-func (c *contactStore) ClearByDomain(ctx context.Context, domainId int) error {
+func (c *contactStore) ClearByDomain(ctx context.Context, domainID int) error {
 	var (
 		query = `
 			delete from im_contact.contact
 			where domain_id = @domain_id
 		`
 		args = pgx.NamedArgs{
-			"domain_id": domainId,
+			"domain_id": domainID,
 		}
 	)
 
 	if _, err := c.db.Master().Exec(ctx, query, args); err != nil {
-		return fmt.Errorf("contactStore.ClearByDomain (id = %d): %w", domainId, err)
+		return fmt.Errorf("contactStore.ClearByDomain (id = %d): %w", domainID, err)
 	}
+
 	return nil
 }
 
@@ -234,11 +238,12 @@ func (c *contactStore) DeleteBotByFlowID(ctx context.Context, flowID string) err
 	if _, err := c.db.Master().Exec(ctx, query, args); err != nil {
 		return errors.Internal("error occurred while executing query", errors.WithCause(err))
 	}
+
 	return nil
 }
 
 func (c *contactStore) PartialUpdate(ctx context.Context, query queries.Query) (*model.Contact, error) {
-	sql, args, err := query.ToSql()
+	sql, args, err := query.ToSQL()
 	if err != nil {
 		return nil, err
 	}
@@ -261,27 +266,24 @@ func (c *contactStore) PartialUpdate(ctx context.Context, query queries.Query) (
 }
 
 func (c *contactStore) Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, bool, error) {
-	var (
-		query = `
-			insert into im_contact.contact(
-				domain_id,
-				issuer_id,
-				subject_id,
-				application_id,
-				type,
-				name,
-				username,
-				metadata
-			) values (
-				@DomainId, @IssuerId, @SubjectId, @ApplicationId, @Type,
-				@Name, @Username, @Metadata
+	stmt := `
+		with ins as (
+			insert into "im_contact"."contact" (
+				"domain_id", "issuer_id", "subject_id", "application_id", "type", "name", "username", "metadata"
 			)
-			on conflict (domain_id, issuer_id, subject_id)
+			values (
+				@DomainID, @Iss, @Sub, @App, @Type, @Name, @Username, @Metadata
+			)
+			on conflict ("domain_id", "issuer_id", "subject_id")
 			do update set
-				updated_at = now(),
-				name = excluded.name,
-				username = excluded.username,
-				metadata = excluded.metadata
+				"updated_at" = now(),
+				"name" = excluded.name,
+			 	"username" = excluded.username,
+				"metadata" = excluded.metadata
+			where
+				("im_contact"."contact"."name", "im_contact"."contact"."username", "im_contact"."contact"."metadata")
+				is distinct from
+				(excluded.name, excluded.username, excluded.metadata)
 			returning
 				id,
 				domain_id,
@@ -295,36 +297,54 @@ func (c *contactStore) Upsert(ctx context.Context, contact *model.Contact) (*mod
 				username,
 				metadata,
 				(xmax = 0) as is_insert
-		`
-		args = pgx.NamedArgs{
-			"DomainId":      contact.DomainID,
-			"IssuerId":      contact.IssuerId,
-			"SubjectId":     contact.SubjectId,
-			"ApplicationId": contact.ApplicationId,
-			"Type":          contact.Type,
-			"Name":          contact.Name,
-			"Username":      contact.Username,
-			"Metadata":      contact.Metadata,
-		}
+		)
+		select *
+		from ins
+	 	union all
+		select *, false as is_insert from im_contact.contact
+		where domain_id = @DomainID
+		and issuer_id = @Iss
+		and subject_id = @Sub
+		and not exists (
+			select 1
+			from ins
+		);
+	`
+	args := pgx.NamedArgs{
+		"DomainID": contact.DomainID,
+		"Iss":      contact.IssuerID,
+		"Sub":      contact.SubjectID,
+		"App":      contact.ApplicationID,
+		"Type":     contact.Type,
+		"Name":     contact.Name,
+		"Username": contact.Username,
+		"Metadata": contact.Metadata,
+	}
+
+	var (
 		result   model.Contact
 		isInsert bool
 	)
 
-	if err := c.db.Master().QueryRow(ctx, query, args).Scan(
+	if err := c.db.Master().QueryRow(ctx, stmt, args).Scan(
 		&result.ID,
 		&result.DomainID,
 		&result.CreatedAt,
 		&result.UpdatedAt,
-		&result.IssuerId,
-		&result.ApplicationId,
-		&result.SubjectId,
+		&result.IssuerID,
+		&result.ApplicationID,
+		&result.SubjectID,
 		&result.Type,
 		&result.Name,
 		&result.Username,
 		&result.Metadata,
 		&isInsert,
 	); err != nil {
-		return nil, false, err
+		if ok, rerr := pg.ErrorIntegrityViolation(err); ok {
+			return nil, false, errors.Wrap(rerr, errors.WithID("postgres.contact_store.upsert"))
+		}
+
+		return nil, false, errors.Internal("performing contact upsert", errors.WithCause(err), errors.WithID("postgres.contact_store.upsert"))
 	}
 
 	return &result, isInsert, nil

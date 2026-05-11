@@ -1,14 +1,15 @@
 package main
 
 import (
-	"fmt"
+	"log/slog"
 
 	"github.com/webitel/im-contact-service/cmd"
 )
 
 func main() {
 	if err := cmd.Run(); err != nil {
-		fmt.Println(err.Error())
+		slog.Error("[MAIN] running server", "error", err)
+
 		return
 	}
 }

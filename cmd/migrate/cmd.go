@@ -39,7 +39,7 @@ func CMD() *cli.Command {
 					func() *config.Config { return cfg },
 					server.ProvideLogger,
 				),
-				fx.Invoke(func(cfg *config.Config, log *slog.Logger, lc fx.Lifecycle) error {
+				fx.Invoke(func(cfg *config.Config, log *slog.Logger, _ fx.Lifecycle) error {
 					m := NewMigrator(cfg, log)
 					if err := m.Run(c.Context); err != nil {
 						return err
@@ -78,12 +78,14 @@ func (m *migrator) Run(ctx context.Context) error {
 
 	goose.SetLogger(newLogger(m.log))
 	goose.SetVerbose(true)
+
 	store, err := database.NewStore(database.DialectPostgres, "im_contact_schema_version")
 	if err != nil {
 		return err
 	}
 
 	noopDialect := goose.Dialect("")
+
 	provider, err := goose.NewProvider(noopDialect, db, migrations.EmbedMigrations, goose.WithStore(store))
 	if err != nil {
 		return err

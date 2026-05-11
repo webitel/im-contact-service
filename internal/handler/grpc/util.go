@@ -4,13 +4,15 @@ const (
 	DefaultPageSize = 10
 )
 
-func ParsePagination(page int32, perPage int32) (int32, int32) {
+func ParsePagination(page, perPage int32) (int32, int32) {
 	if page < 1 {
 		page = 1
 	}
+
 	if perPage < 1 {
 		perPage = 20
 	}
+
 	return page, perPage
 }
 
@@ -20,5 +22,6 @@ func ResolvePaging[C any](size int, items []C) (result []C, next bool) {
 	if size > 0 && len(items) > size {
 		return items[0:size], true
 	}
+
 	return items, false
 }

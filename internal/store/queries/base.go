@@ -1,5 +1,5 @@
 package queries
 
 type Query interface {
-	ToSql() (string, []any, error)
+	ToSQL() (string, []any, error)
 }

@@ -11,13 +11,11 @@ import (
 	"github.com/webitel/im-contact-service/internal/service"
 )
 
-
-
 type ContactPrivacyServer struct {
 	impb.UnimplementedContactPrivacyServer
 
-	logger  *slog.Logger
-	handler service.ContactPrivacyService
+	logger   *slog.Logger
+	handler  service.ContactPrivacyService
 	inMapper mapper.PrivacyInMapper
 }
 
@@ -26,10 +24,7 @@ type PrivacyService interface {
 	CanInvite(context.Context, *model.CanInviteRequest) error
 }
 
-
-
-
-func NewPrivacyServer(handler service.ContactPrivacyService, logger *slog.Logger) *ContactPrivacyServer{
+func NewPrivacyServer(handler service.ContactPrivacyService, logger *slog.Logger) *ContactPrivacyServer {
 	return &ContactPrivacyServer{handler: handler, logger: logger, inMapper: &generated.PrivacyInMapperImpl{}}
 }
 
@@ -45,8 +40,8 @@ func (c *ContactPrivacyServer) CanSend(ctx context.Context, request *impb.CanSen
 	}
 
 	return &impb.CanSendResponse{}, nil
-	
 }
+
 func (c *ContactPrivacyServer) CanInvite(ctx context.Context, request *impb.CanInviteRequest) (*impb.CanInviteResponse, error) {
 	converted, err := c.inMapper.ConvertCanInviteRequest(request)
 	if err != nil {
@@ -59,6 +54,4 @@ func (c *ContactPrivacyServer) CanInvite(ctx context.Context, request *impb.CanI
 	}
 
 	return &impb.CanInviteResponse{}, nil
-	
 }
-
