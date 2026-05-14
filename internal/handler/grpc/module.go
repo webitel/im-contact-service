@@ -10,26 +10,38 @@ import (
 var Module = fx.Module("grpc",
 	fx.Provide(
 		NewContactService,
-		 NewContactSettingsServer,
-		NewPrivacyServer),
+		NewContactSettingsServer,
+		NewPrivacyServer,
+		newViaServer,
+	),
 	fx.Invoke(
 		RegisterContactService,
 		RegisterContactSettingsService,
 		RegisterContactPrivacyService,
+		RegisterViaServer,
 	),
 )
 
-func RegisterContactService(server *grpcsrv.Server, service *ContactServer, lc fx.Lifecycle) error {
+func RegisterContactService(server *grpcsrv.Server, service *ContactServer, _ fx.Lifecycle) error {
 	impb.RegisterContactsServer(server.Server, service)
+
 	return nil
 }
-func RegisterContactSettingsService(server *grpcsrv.Server, service *ContactSettingsServer, lc fx.Lifecycle) error {
+
+func RegisterContactSettingsService(server *grpcsrv.Server, service *ContactSettingsServer, _ fx.Lifecycle) error {
 	impb.RegisterContactSettingsServer(server.Server, service)
+
 	return nil
 }
 
-
-func RegisterContactPrivacyService(server *grpcsrv.Server, service *ContactPrivacyServer, lc fx.Lifecycle) error {
+func RegisterContactPrivacyService(server *grpcsrv.Server, service *ContactPrivacyServer, _ fx.Lifecycle) error {
 	impb.RegisterContactPrivacyServer(server.Server, service)
+
+	return nil
+}
+
+func RegisterViaServer(server *grpcsrv.Server, srv *ViaServer, _ fx.Lifecycle) error {
+	impb.RegisterViasServer(server.Server, srv)
+
 	return nil
 }

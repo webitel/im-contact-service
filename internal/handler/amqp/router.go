@@ -6,20 +6,21 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
+	"go.uber.org/fx"
+
 	pubsubadapter "github.com/webitel/im-contact-service/internal/adapter/pubsub"
 	"github.com/webitel/im-contact-service/internal/domain/events"
-	"go.uber.org/fx"
 )
 
 // Exchange names
 const (
-	WebitelGoExchange = "webitel"
-	FlowSchemaDomainEventsExchange= "event"
+	WebitelGoExchange              = "webitel"
+	FlowSchemaDomainEventsExchange = "event"
 )
 
 // Queue names
 const (
-	DomainDeletedQueue = "im_contacts.domain_delete"
+	DomainDeletedQueue    = "im_contacts.domain_delete"
 	FlowSchemaDeleteQueue = "im_contacts.flow_delete"
 )
 
@@ -29,21 +30,21 @@ func RegisterHandlers(
 	h *MessageHandler,
 ) error {
 	subscriptions := []struct {
-		topic   string
-		queue   string
-		handler message.NoPublishHandlerFunc
+		topic    string
+		queue    string
+		handler  message.NoPublishHandlerFunc
 		exchange string
 	}{
 		{
-			topic:   events.DomainDeletedTopic,
-			queue:   DomainDeletedQueue,
-			handler: bind(h.OnDomainDeleted),
+			topic:    events.DomainDeletedTopic,
+			queue:    DomainDeletedQueue,
+			handler:  bind(h.OnDomainDeleted),
 			exchange: WebitelGoExchange,
 		},
 		{
-			topic:   events.FlowSchemaDeleteTopic,
-			queue: FlowSchemaDeleteQueue,
-			handler: bind(h.OnFlowSchemaDelete),
+			topic:    events.FlowSchemaDeleteTopic,
+			queue:    FlowSchemaDeleteQueue,
+			handler:  bind(h.OnFlowSchemaDelete),
 			exchange: FlowSchemaDomainEventsExchange,
 		},
 	}
@@ -69,26 +70,26 @@ func RegisterHandlers(
 	return nil
 }
 
-
 func NewWatermillRouter(lc fx.Lifecycle, logger *slog.Logger) (*message.Router, error) {
-    router, err := message.NewRouter(message.RouterConfig{}, watermill.NewSlogLogger(logger))
-    if err != nil {
-        return nil, err
-    }
+	router, err := message.NewRouter(message.RouterConfig{}, watermill.NewSlogLogger(logger))
+	if err != nil {
+		return nil, err
+	}
 
-    lc.Append(fx.Hook{
-        OnStart: func(ctx context.Context) error {
-            go func() {
-                if err := router.Run(ctx); err != nil {
-                    logger.Error("watermill router run error", "err", err)
-                }
-            }()
-            return nil
-        },
-        OnStop: func(ctx context.Context) error {
-            return router.Close()
-        },
-    })
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			go func() {
+				if err := router.Run(ctx); err != nil {
+					logger.Error("watermill router run error", "err", err)
+				}
+			}()
 
-    return router, nil
+			return nil
+		},
+		OnStop: func(_ context.Context) error {
+			return router.Close()
+		},
+	})
+
+	return router, nil
 }

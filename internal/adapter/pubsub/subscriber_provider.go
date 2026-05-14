@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"github.com/ThreeDotsLabs/watermill/message"
+
 	infrapubsub "github.com/webitel/im-contact-service/infra/pubsub"
 	"github.com/webitel/im-contact-service/infra/pubsub/factory"
 )

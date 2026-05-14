@@ -2,12 +2,14 @@ package config
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+
+	"github.com/webitel/webitel-go-kit/pkg/errors"
 )
 
 type Config struct {
@@ -21,13 +23,13 @@ type Config struct {
 }
 
 type ServiceConfig struct {
-	Id         string           `mapstructure:"id"`
+	ID         string           `mapstructure:"id"`
 	Address    string           `mapstructure:"addr"`
 	Connection ConnectionConfig `mapstructure:"conn"`
 }
 
 type ConnectionConfig struct {
-	TLS         TLSConfig `mapstructure:",squash"`
+	TLS         TLSConfig `mapstructure:"tls,squash"`
 	VerifyCerts bool      `mapstructure:"verify_certs"`
 	Client      TLSConfig `mapstructure:"client"`
 }
@@ -88,26 +90,30 @@ func LoadConfig() (*Config, error) {
 	configFile := viper.GetString("config_file")
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
+
 		if err := viper.ReadInConfig(); err != nil {
 			return nil, fmt.Errorf("failed to read config file: %w", err)
 		}
 
 		viper.OnConfigChange(func(e fsnotify.Event) {
-			log.Printf("Config file changed: %s", e.Name)
+			slog.Warn("config file changed", "filename", e.Name)
 
 			newCfg := &Config{}
 			if err := viper.Unmarshal(newCfg); err != nil {
-				log.Printf("Reload error: unable to decode: %v", err)
+				slog.Error("[CONFIG] reload: unable to decode", "error", err)
+
 				return
 			}
 
 			if err := newCfg.validate(); err != nil {
-				log.Printf("Reload error: invalid config: %v", err)
+				slog.Error("[CONFIG] validating config after reload", "error", err)
+
 				return
 			}
 
 			*cfg = *newCfg
-			log.Println("Config reloaded successfully")
+
+			slog.Info("[CONFIG] reloaded successfully")
 		})
 
 		viper.WatchConfig()
@@ -160,12 +166,12 @@ func defineFlags() {
 }
 
 func (c *Config) validate() error {
-	if c.Service.Id == "" {
-		return fmt.Errorf("config: service.id is required (use --service.id or SERVICE_ID env)")
+	if c.Service.ID == "" {
+		return errors.InvalidArgument("config: service.id is required (use --service.id or SERVICE_ID env)")
 	}
 
 	if c.Service.Address == "" {
-		return fmt.Errorf("config: service.addr is required")
+		return errors.InvalidArgument("config: service.addr is required")
 	}
 
 	err := validateConnectionConfig(c.Service.Connection)
@@ -178,23 +184,23 @@ func (c *Config) validate() error {
 	}
 
 	if c.Postgres.DSN == "" {
-		return fmt.Errorf("config: postgres.dsn is required (use --postgres.dsn or DATA_SOURCE env)")
+		return errors.InvalidArgument("config: postgres.dsn is required (use --postgres.dsn or DATA_SOURCE env)")
 	}
 
 	if c.Redis.Addr == "" {
-		return fmt.Errorf("config: redis.addr is required")
+		return errors.InvalidArgument("config: redis.addr is required")
 	}
 
 	if c.Consul.Address == "" {
-		return fmt.Errorf("config: consul.addr is required")
+		return errors.InvalidArgument("config: consul.addr is required")
 	}
 
 	if c.Pubsub.URL == "" {
-		return fmt.Errorf("config: pubsub.broker_url is required (use --pubsub.broker_url or PUBSUB env)")
+		return errors.InvalidArgument("config: pubsub.broker_url is required (use --pubsub.broker_url or PUBSUB env)")
 	}
 
 	if !strings.HasPrefix(c.Pubsub.URL, "amqp://") && !strings.HasPrefix(c.Pubsub.URL, "amqps://") {
-		return fmt.Errorf("config: pubsub.broker_url must start with amqp:// or amqps://")
+		return errors.InvalidArgument("config: pubsub.broker_url must start with amqp:// or amqps://")
 	}
 
 	return nil
@@ -203,14 +209,17 @@ func (c *Config) validate() error {
 func validateConnectionConfig(conn ConnectionConfig) error {
 	if conn.VerifyCerts {
 		if conn.TLS.CA == "" {
-			return fmt.Errorf("config: service.conn.ca is required when verify_certs is true")
+			return errors.InvalidArgument("config: service.conn.ca is required when verify_certs is true")
 		}
+
 		if conn.TLS.Cert == "" {
-			return fmt.Errorf("config: service.conn.cert is required when verify_certs is true")
+			return errors.InvalidArgument("config: service.conn.cert is required when verify_certs is true")
 		}
+
 		if conn.TLS.Key == "" {
-			return fmt.Errorf("config: service.conn.key is required when verify_certs is true")
+			return errors.InvalidArgument("config: service.conn.key is required when verify_certs is true")
 		}
 	}
+
 	return nil
 }

@@ -2,11 +2,11 @@ package model
 
 type (
 	BaseFilter struct {
-		DomainId int
-		Page int
-		Size int
-		Sort string
-		Q string
+		DomainID int
+		Page     int
+		Size     int
+		Sort     string
+		Q        string
 	}
 )
 

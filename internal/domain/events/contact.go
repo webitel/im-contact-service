@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/webitel/im-contact-service/internal/model"
 )
 
@@ -15,6 +16,7 @@ const (
 
 type ContactCreated struct {
 	Base
+
 	ContactID     uuid.UUID `json:"contact_id"`
 	Name          string    `json:"name"`
 	Username      string    `json:"username"`
@@ -36,13 +38,14 @@ func NewContactCreated(m *model.Contact) *ContactCreated {
 		Name:          m.Name,
 		Username:      m.Username,
 		Type:          m.Type,
-		ApplicationID: m.ApplicationId,
-		IssuerID:      m.IssuerId,
+		ApplicationID: m.ApplicationID,
+		IssuerID:      m.IssuerID,
 	}
 }
 
 type ContactUpdated struct {
 	Base
+
 	ContactID uuid.UUID `json:"contact_id"`
 	Name      string    `json:"name"`
 	Username  string    `json:"username"`
@@ -67,6 +70,7 @@ func NewContactUpdated(m *model.Contact) *ContactUpdated {
 
 type ContactDeleted struct {
 	Base
+
 	ContactID uuid.UUID `json:"contact_id"`
 }
 

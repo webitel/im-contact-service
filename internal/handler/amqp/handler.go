@@ -7,7 +7,7 @@ import (
 )
 
 type DomainEventsHandler interface {
-	DeleteByDomain(ctx context.Context, domainId int) error
+	DeleteByDomain(ctx context.Context, domainID int) error
 	DeleteBotByFlowID(ctx context.Context, flowID string) error
 }
 
@@ -20,7 +20,7 @@ func NewMessageHandler(svc DomainEventsHandler) *MessageHandler {
 }
 
 func (h *MessageHandler) OnDomainDeleted(ctx context.Context, event events.DomainDeleted) error {
-	return h.service.DeleteByDomain(ctx, event.DomainID())
+	return h.service.DeleteByDomain(ctx, event.GetDomainID())
 }
 
 func (h *MessageHandler) OnFlowSchemaDelete(ctx context.Context, event events.FlowSchemaDeleted) error {

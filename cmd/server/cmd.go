@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/urfave/cli/v2"
+
 	"github.com/webitel/im-contact-service/config"
 )
 
@@ -27,6 +28,7 @@ func CMD() *cli.Command {
 			if err != nil {
 				return err
 			}
+
 			app := NewApp(cfg)
 
 			if err := app.Start(c.Context); err != nil {

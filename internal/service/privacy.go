@@ -5,9 +5,11 @@ import (
 	"log/slog"
 
 	"github.com/google/uuid"
+
+	"github.com/webitel/webitel-go-kit/pkg/errors"
+
 	"github.com/webitel/im-contact-service/internal/model"
 	"github.com/webitel/im-contact-service/internal/store"
-	"github.com/webitel/webitel-go-kit/pkg/errors"
 )
 
 type contactPrivacyService struct {
@@ -15,7 +17,6 @@ type contactPrivacyService struct {
 	settingsStore store.SettingsStore
 	contactStore  store.ContactStore
 }
-
 
 func NewContactPrivacyService(log *slog.Logger, settingsStore store.SettingsStore, contactStore store.ContactStore) (ContactPrivacyService, error) {
 	return &contactPrivacyService{logger: log, settingsStore: settingsStore, contactStore: contactStore}, nil
@@ -44,6 +45,7 @@ func (s *contactPrivacyService) CanSend(ctx context.Context, request *model.CanS
 	if from == uuid.Nil {
 		return errors.InvalidArgument("from required")
 	}
+
 	if to == uuid.Nil {
 		return errors.InvalidArgument("to required")
 	}
@@ -75,6 +77,7 @@ func (s *contactPrivacyService) CanInvite(ctx context.Context, request *model.Ca
 	if from == uuid.Nil {
 		return errors.InvalidArgument("from required")
 	}
+
 	if to == uuid.Nil {
 		return errors.InvalidArgument("to required")
 	}
@@ -104,7 +107,7 @@ func (s *contactPrivacyService) findContactPair(ctx context.Context, from, to uu
 	}
 
 	foundLen := len(contacts)
-	if foundLen <=0 || foundLen > 2 {
+	if foundLen <= 0 || foundLen > 2 {
 		return nil, nil, errors.InvalidArgument("invalid contacts found")
 	}
 
@@ -112,11 +115,11 @@ func (s *contactPrivacyService) findContactPair(ctx context.Context, from, to uu
 		if fromContact != nil && toContact != nil {
 			break
 		}
+
 		if contact == nil {
 			continue
 		}
 
-		
 		if contact.ID == from {
 			fromContact = contact
 		}
@@ -131,7 +134,6 @@ func (s *contactPrivacyService) findContactPair(ctx context.Context, from, to uu
 	}
 
 	return fromContact, toContact, nil
-
 }
 
 func (s *contactPrivacyService) checkValidationRules(from, to *model.Contact, toSettings *model.ContactSettings, validators []ValidationFunc) error {
@@ -141,6 +143,7 @@ func (s *contactPrivacyService) checkValidationRules(from, to *model.Contact, to
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -168,7 +171,7 @@ func validateAllowInviteFrom(from, to *model.Contact, toSettings *model.ContactS
 	return nil
 }
 
-func ensureSharedDomain(from *model.Contact, to *model.Contact, _ *model.ContactSettings) error {
+func ensureSharedDomain(from, to *model.Contact, _ *model.ContactSettings) error {
 	if from == nil || to == nil {
 		return errors.InvalidArgument("contacts required")
 	}
@@ -178,10 +181,9 @@ func ensureSharedDomain(from *model.Contact, to *model.Contact, _ *model.Contact
 	}
 
 	return nil
-
 }
 
-func denyBotToBotCommunication(from *model.Contact, to *model.Contact, _ *model.ContactSettings) error {
+func denyBotToBotCommunication(from, to *model.Contact, _ *model.ContactSettings) error {
 	if from == nil || to == nil {
 		return errors.InvalidArgument("contacts required")
 	}
@@ -191,5 +193,4 @@ func denyBotToBotCommunication(from *model.Contact, to *model.Contact, _ *model.
 	}
 
 	return nil
-
 }

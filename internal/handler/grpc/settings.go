@@ -25,7 +25,6 @@ func NewContactSettingsServer(handler service.ContactSettingsService) (*ContactS
 		inConverter:  &generated.SettingsInConverterImpl{},
 		outConverter: &generated.SettingsOutConverterImpl{},
 	}, nil
-
 }
 
 // Get implements [contact.ContactSettingsServer].
@@ -34,10 +33,12 @@ func (c *ContactSettingsServer) Get(ctx context.Context, req *impb.GetContactSet
 	if err != nil {
 		return nil, err
 	}
+
 	settings, err := c.service.Get(ctx, converted)
 	if err != nil {
 		return nil, err
 	}
+
 	return c.outConverter.ConvertSettings(settings)
 }
 
@@ -47,10 +48,11 @@ func (c *ContactSettingsServer) Update(ctx context.Context, req *impb.UpdateCont
 	if err != nil {
 		return nil, err
 	}
+
 	settings, err := c.service.Update(ctx, converted)
 	if err != nil {
 		return nil, err
 	}
-	return c.outConverter.ConvertSettings(settings)
 
+	return c.outConverter.ConvertSettings(settings)
 }

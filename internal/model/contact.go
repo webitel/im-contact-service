@@ -3,16 +3,19 @@ package model
 import "github.com/google/uuid"
 
 type Contact struct {
-	BaseModel
-	IssuerId      string `json:"issuer_id" db:"issuer_id"`
-	SubjectId     string `json:"subject_id" db:"subject_id"`
-	ApplicationId string `json:"application_id" db:"application_id"`
+	BaseModel `json:"base_model"`
+
+	IssuerID      string `json:"issuer_id" db:"issuer_id"`
+	SubjectID     string `json:"subject_id" db:"subject_id"`
+	ApplicationID string `json:"application_id" db:"application_id"`
 	Type          string `json:"type" db:"type"`
 
 	Name     string            `json:"name" db:"name"`
 	Username string            `json:"username" db:"username"`
 	Metadata map[string]string `json:"metadata" db:"metadata"`
-	IsBot    bool              `jsob:"is_bot" db:"is_bot"`
+	IsBot    bool              `jsob:"is_bot" db:"is_bot" json:"is_bot"`
+
+	Via []*ViaCommunication `json:"via" db:"via"`
 }
 
 func (c *Contact) Equal(compare *Contact) bool {
@@ -20,10 +23,10 @@ func (c *Contact) Equal(compare *Contact) bool {
 		return true
 	}
 
-	return c.ApplicationId == compare.ApplicationId &&
+	return c.ApplicationID == compare.ApplicationID &&
 		c.ID == compare.ID &&
 		c.DomainID == compare.DomainID &&
-		c.IssuerId == compare.IssuerId &&
+		c.IssuerID == compare.IssuerID &&
 		c.Name == compare.Name &&
 		c.Type == compare.Type &&
 		c.Username == compare.Username &&
@@ -31,8 +34,10 @@ func (c *Contact) Equal(compare *Contact) bool {
 }
 
 func ContactAllowedFields() []string {
-	return []string{"issuer_id", "application_id", "type", "name", "username", "metadata",
-		"id", "domain_id", "created_at", "updated_at", "subject_id", "is_bot"}
+	return []string{
+		"issuer_id", "application_id", "type", "name", "username", "metadata",
+		"id", "domain_id", "created_at", "updated_at", "subject_id", "is_bot", "via",
+	}
 }
 
 type (

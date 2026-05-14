@@ -13,6 +13,7 @@ const PostgreSQLTestVersion string = "postgres:18.1-alpine"
 
 type PostgresContainer struct {
 	*postgres.PostgresContainer
+
 	ConnectionString string
 }
 
@@ -28,7 +29,6 @@ func NewPostgresContainer(ctx context.Context) (*PostgresContainer, error) {
 				WithOccurrence(2).WithStartupTimeout(time.Second*5),
 		),
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func NewPostgresContainer(ctx context.Context) (*PostgresContainer, error) {
 		return nil, err
 	}
 
-	var container = new(PostgresContainer)
+	container := new(PostgresContainer)
 	{
 		container.ConnectionString = connStr
 		container.PostgresContainer = postgresContainer

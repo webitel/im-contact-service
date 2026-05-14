@@ -6,10 +6,12 @@ import (
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/google/uuid"
+
+	"github.com/webitel/webitel-go-kit/pkg/errors"
+
 	"github.com/webitel/im-contact-service/infra/db/pg"
 	"github.com/webitel/im-contact-service/internal/model"
 	"github.com/webitel/im-contact-service/internal/store"
-	"github.com/webitel/webitel-go-kit/pkg/errors"
 )
 
 var _ store.SettingsStore = (*SettingsStore)(nil)
@@ -19,23 +21,27 @@ type SettingsStore struct {
 	db     *pg.PgxDB
 }
 
-func NewSettingsStore(log *slog.Logger, conn *pg.PgxDB ) (*SettingsStore, error) {
+func NewSettingsStore(log *slog.Logger, conn *pg.PgxDB) (*SettingsStore, error) {
 	return &SettingsStore{
 		logger: log,
-		db: conn,
+		db:     conn,
 	}, nil
 }
+
 // Create implements [store.SettingsStore].
 func (s *SettingsStore) Create(ctx context.Context, command *model.CreateContactSettingsRequest) (*model.ContactSettings, error) {
 	if command == nil {
 		return nil, errors.InvalidArgument("create settings request is required")
 	}
+
 	if command.Settings == nil {
 		return nil, errors.InvalidArgument("setting required to create row")
 	}
+
 	if command.ContactID == uuid.Nil {
 		return nil, errors.InvalidArgument("contact id required to create settings")
 	}
+
 	_, err := s.db.Master().Exec(
 		ctx,
 		`INSERT INTO im_contact.contact_setting(contact_id, allow_invites_from) VALUES ($1, $2)`,
@@ -45,19 +51,18 @@ func (s *SettingsStore) Create(ctx context.Context, command *model.CreateContact
 	if err != nil {
 		return nil, err
 	}
-	return command.Settings, nil
-	
-}
 
+	return command.Settings, nil
+}
 
 // Get implements [store.SettingsStore].
 func (s *SettingsStore) Get(ctx context.Context, contactID uuid.UUID) (*model.ContactSettings, error) {
 	if contactID == uuid.Nil {
 		return nil, errors.InvalidArgument("contact id required to get settings")
 	}
-	var (
-		settings model.ContactSettings
-	)
+
+	var settings model.ContactSettings
+
 	err := pgxscan.Get(
 		ctx,
 		s.db.Master(),
@@ -68,6 +73,7 @@ func (s *SettingsStore) Get(ctx context.Context, contactID uuid.UUID) (*model.Co
 	if err != nil {
 		return nil, err
 	}
+
 	return &settings, nil
 }
 
@@ -76,11 +82,13 @@ func (s *SettingsStore) Update(ctx context.Context, args *model.UpdateContactSet
 	if args == nil {
 		return nil, errors.InvalidArgument("update settings request is required")
 	}
+
 	if args.ContactID == uuid.Nil {
 		return nil, errors.InvalidArgument("contact id required to update settings")
 	}
 
 	var updatedSettings model.ContactSettings
+
 	err := pgxscan.Get(
 		ctx,
 		s.db.Master(),
@@ -97,5 +105,6 @@ func (s *SettingsStore) Update(ctx context.Context, args *model.UpdateContactSet
 	if err != nil {
 		return nil, err
 	}
+
 	return &updatedSettings, nil
 }

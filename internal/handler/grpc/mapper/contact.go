@@ -2,6 +2,7 @@ package mapper
 
 import (
 	"github.com/google/uuid"
+
 	impb "github.com/webitel/im-contact-service/gen/go/contact/v1"
 	"github.com/webitel/im-contact-service/internal/model"
 )
@@ -20,36 +21,37 @@ type ContactInConverter interface {
 	ConvertDeleteRequest(*impb.DeleteContactRequest) (*model.DeleteContactRequest, error)
 }
 
-func MarshalContact(contact *model.Contact) (*impb.Contact, error) {
+func MarshalContact(contact *model.Contact) *impb.Contact {
 	if contact == nil {
-		return nil, nil
+		return nil
 	}
+
 	return &impb.Contact{
 		Id:        contact.ID.String(),
-		IssId:     contact.IssuerId,
-		AppId:     contact.ApplicationId,
+		IssId:     contact.IssuerID,
+		AppId:     contact.ApplicationID,
 		Type:      contact.Type,
 		Name:      contact.Name,
 		Username:  contact.Username,
 		Metadata:  contact.Metadata,
 		CreatedAt: contact.CreatedAt.UnixMilli(),
 		UpdatedAt: contact.UpdatedAt.UnixMilli(),
-		Subject:   contact.SubjectId,
+		Subject:   contact.SubjectID,
 		DomainId:  int32(contact.DomainID),
 		IsBot:     contact.IsBot,
-	}, nil
+	}
 }
 
 func MapPatchContactRequestToPartialUpdateContactCommand(request *impb.PatchContactRequest) *model.PartialUpdateContactRequest {
-	id, _ := uuid.Parse(request.Id)
+	id, _ := uuid.Parse(request.GetId())
 
 	return &model.PartialUpdateContactRequest{
 		ID:       id,
-		DomainID: int(request.DomainId),
-		Name:     request.Name,
-		Username: request.Username,
-		Metadata: request.Metadata,
-		Subject:  request.Subject,
-		Fields:   request.FieldMask.Paths,
+		DomainID: int(request.GetDomainId()),
+		Name:     request.GetName(),
+		Username: request.GetUsername(),
+		Metadata: request.GetMetadata(),
+		Subject:  request.GetSubject(),
+		Fields:   request.GetFieldMask().GetPaths(),
 	}
 }

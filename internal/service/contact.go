@@ -2,20 +2,21 @@ package service
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/google/uuid"
+
+	"github.com/webitel/webitel-go-kit/pkg/errors"
+
 	"github.com/webitel/im-contact-service/internal/domain/events"
 	"github.com/webitel/im-contact-service/internal/handler/amqp"
 	"github.com/webitel/im-contact-service/internal/model"
 	"github.com/webitel/im-contact-service/internal/store"
 	"github.com/webitel/im-contact-service/internal/store/queries"
-	"github.com/webitel/webitel-go-kit/pkg/errors"
 )
 
-
-
 var (
-	_ ContactService                      = &contactService{}
+	_ ContactService           = &contactService{}
 	_ amqp.DomainEventsHandler = &contactService{}
 )
 
@@ -26,15 +27,17 @@ type EventPublisher interface {
 }
 
 type contactService struct {
+	logger    *slog.Logger
 	store     store.ContactStore
 	publisher EventPublisher
 }
 
 // NewContactService creates a new ContactService instance.
-func NewContactService(store store.ContactStore, publisher EventPublisher) ContactService {
+func NewContactService(store store.ContactStore, publisher EventPublisher, logger *slog.Logger) ContactService {
 	return &contactService{
 		store:     store,
 		publisher: publisher,
+		logger:    logger.With("component", "contact_service"),
 	}
 }
 
@@ -43,6 +46,7 @@ func (s *contactService) Search(ctx context.Context, filter *model.ContactSearch
 	if filter == nil {
 		return nil, errors.InvalidArgument("filter is required")
 	}
+
 	return s.store.Search(ctx, filter)
 }
 
@@ -73,12 +77,17 @@ func (s *contactService) Create(ctx context.Context, input *model.Contact) (*mod
 
 // Upsert persists a new contact and publishes a ContactCreatedEvent or updates an existing contact and publishes a ContactUpdatedEvent.
 func (s *contactService) Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, error) {
+	log := s.logger.With("operation", "upsert")
 	if err := s.validateCreate(contact); err != nil {
+		log.Warn("validating create request", "error", err)
+
 		return nil, err
 	}
 
 	contact, isInsert, err := s.store.Upsert(ctx, contact)
 	if err != nil {
+		log.Error("performing upsert query for contact", "error", err)
+
 		return nil, err
 	}
 
@@ -121,6 +130,7 @@ func (s *contactService) Delete(ctx context.Context, input *model.DeleteContactR
 	if input.ID == uuid.Nil {
 		return errors.InvalidArgument("id is required")
 	}
+
 	if input.DomainID == 0 {
 		return errors.InvalidArgument("domainId is required")
 	}
@@ -133,25 +143,25 @@ func (s *contactService) Delete(ctx context.Context, input *model.DeleteContactR
 	return s.publisher.Publish(ctx, events.NewContactDeleted(input.ID))
 }
 
-
-
-func (s *contactService) DeleteByDomain(ctx context.Context, domainId int) error {
-	err := s.store.ClearByDomain(ctx, domainId)
+func (s *contactService) DeleteByDomain(ctx context.Context, domainID int) error {
+	err := s.store.ClearByDomain(ctx, domainID)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
-
 
 func (s *contactService) DeleteBotByFlowID(ctx context.Context, flowID string) error {
 	if flowID == "" {
 		return errors.InvalidArgument("flow id required to delete bot by flow id")
 	}
+
 	err := s.store.DeleteBotByFlowID(ctx, flowID)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -163,18 +173,18 @@ func (s *contactService) PartialUpdate(ctx context.Context, cmd *model.PartialUp
 	query := queries.NewContactUpdateQuery().WithDomainIDFilter(cmd.DomainID).WithIDFilter(cmd.ID)
 
 	for _, field := range cmd.Fields {
-	switch field {
-	case "name":
-		query.WithName(cmd.Name)
-	case "username":
-		query.WithUsername(cmd.Username)
-	case "metadata":
-		query.WithMetadata(cmd.Metadata)
-	case "subject":
-		query.WithSubject(cmd.Subject)
+		switch field {
+		case "name":
+			query.WithName(cmd.Name)
+		case "username":
+			query.WithUsername(cmd.Username)
+		case "metadata":
+			query.WithMetadata(cmd.Metadata)
+		case "subject":
+			query.WithSubject(cmd.Subject)
+		}
 	}
-	}
-	
+
 	contact, err := s.store.PartialUpdate(ctx, query)
 	if err != nil {
 		return nil, err
@@ -193,12 +203,13 @@ func (s *contactService) validateCreate(input *model.Contact) error {
 		return errors.InvalidArgument("username is required")
 	}
 
-	if input.IssuerId == "" {
+	if input.IssuerID == "" {
 		return errors.InvalidArgument("issuerId is required")
 	}
 
 	if input.Type == "" {
 		return errors.InvalidArgument("contact type is required")
 	}
+
 	return nil
 }

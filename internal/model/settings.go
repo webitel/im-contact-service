@@ -18,16 +18,16 @@ func (u *UserFilter) InFilter(from, to *Contact) bool {
 	if from == nil || to == nil {
 		return false
 	}
-	var (
-		in bool
-	)
+
+	var in bool
+
 	switch *u {
 	case All:
 		in = true
 	case Nobody:
 		in = false
 	case SameIssuer:
-		in = from.IssuerId == to.IssuerId
+		in = from.IssuerID == to.IssuerID
 	}
 
 	return in
