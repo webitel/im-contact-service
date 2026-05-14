@@ -301,7 +301,19 @@ func (c *contactStore) Upsert(ctx context.Context, contact *model.Contact) (*mod
 		select *
 		from ins
 	 	union all
-		select *, false as is_insert from im_contact.contact
+		select
+			id,
+			domain_id,
+			created_at,
+			updated_at,
+			issuer_id,
+			application_id,
+			subject_id,
+			type,
+			name,
+			username,
+			metadata,
+			false as is_insert from im_contact.contact
 		where domain_id = @DomainID
 		and issuer_id = @Iss
 		and subject_id = @Sub
