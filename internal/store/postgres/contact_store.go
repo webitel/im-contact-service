@@ -207,7 +207,7 @@ func (c *contactStore) prepareContactSearchQuery(filter *model.ContactSearchRequ
 	}
 
 	if len(filter.Subjects) > 0 {
-		contactSelect = contactSelect.Where(sq.Eq{Ident(contactAlias, "subject"): filter.Subjects})
+		contactSelect = contactSelect.Where(sq.Eq{Ident(contactAlias, "subject_id"): filter.Subjects})
 	}
 
 	if filter.OnlyBots != nil {
