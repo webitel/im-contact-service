@@ -2,6 +2,7 @@ package mapper
 
 import (
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/structpb"
 
 	impb "github.com/webitel/im-contact-service/gen/go/contact/v1"
 	"github.com/webitel/im-contact-service/internal/model"
@@ -19,6 +20,28 @@ type ContactInConverter interface {
 	// goverter:useZeroValueOnPointerInconsistency
 	ConvertPartialUpdateRequest(*impb.PatchContactRequest) (*model.PartialUpdateContactRequest, error)
 	ConvertDeleteRequest(*impb.DeleteContactRequest) (*model.DeleteContactRequest, error)
+}
+
+func MarshalViaList(vias []*model.ViaCommunication) []*impb.Via {
+	items := make([]*impb.Via, len(vias))
+	for i, via := range vias {
+		md, err := structpb.NewStruct(via.Metadata)
+		if err != nil {
+			continue
+		}
+
+		items[i] = &impb.Via{
+			ContactId:     via.ContactID.String(),
+			Via:           via.Via,
+			Disable:       via.Disable,
+			DisableReason: via.DisableReason,
+			CreatedAt:     via.CreatedAtUTCUnix(),
+			UpdatedAt:     via.UpdatedAtUTCUnix(),
+			Metadata:      md,
+		}
+	}
+
+	return items
 }
 
 func MarshalContact(contact *model.Contact) *impb.Contact {
@@ -39,6 +62,7 @@ func MarshalContact(contact *model.Contact) *impb.Contact {
 		Subject:   contact.SubjectID,
 		DomainId:  int32(contact.DomainID),
 		IsBot:     contact.IsBot,
+		Vias:      MarshalViaList(contact.Via),
 	}
 }
 

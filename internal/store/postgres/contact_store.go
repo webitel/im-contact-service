@@ -3,8 +3,8 @@ package postgres
 import (
 	"context"
 	"fmt"
-	"strings"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"google.golang.org/grpc/codes"
@@ -98,73 +98,128 @@ func (c *contactStore) Delete(ctx context.Context, command *model.DeleteContactR
 	return nil
 }
 
-// Search implements [store.ContactStore].
 func (c *contactStore) Search(ctx context.Context, filter *model.ContactSearchRequest) ([]*model.Contact, error) {
-	if filter.Q != nil && *filter.Q != "" {
-		*filter.Q += "%"
-	} else {
-		filter.Q = nil
-	}
-
-	selectFields := ""
-	if len(filter.Fields) > 0 {
-		selectFields = strings.Join(store.SanitizeFields(filter.Fields, model.ContactAllowedFields()), ",")
-	} else {
-		selectFields = strings.Join(model.ContactAllowedFields(), ",")
-	}
-
-	sortClause := store.ValidateAndFormatSort(filter.Sort, model.ContactAllowedFields())
-	limit := max(filter.Size, 1)
-	offset := max((filter.Page-1)*filter.Size, 0)
-
-	var (
-		query = fmt.Sprintf(`
-        SELECT %s
-        FROM im_contact.contact
-        WHERE (@domain_id::int IS NULL OR domain_id = @domain_id)
-            AND (@ids::uuid[] IS NULL OR id = ANY(@ids::uuid[]))
-            AND (@Q::text IS NULL OR username ILIKE @Q OR name ILIKE @Q)
-            AND (@apps::text[] IS NULL OR application_id = ANY(@apps::text[]))
-            AND (@issuers::text[] IS NULL OR issuer_id = ANY(@issuers::text[]))
-            AND (@types::text[] IS NULL OR type = ANY(@types::text[]))
-			AND(@subjects::text[] IS NULL OR subject_id = ANY(@subjects::text[]))
-			AND(@is_bot::BOOL IS NULL OR is_bot = @is_bot)
-        ORDER BY %s
-        LIMIT @limit OFFSET @offset`, selectFields, sortClause)
-
-		args = pgx.NamedArgs{
-			"domain_id": filter.DomainID,
-			"ids":       arrayOrNull(filter.IDs),
-			"Q":         filter.Q,
-			"apps":      arrayOrNull(filter.Apps),
-			"issuers":   arrayOrNull(filter.Issuers),
-			"types":     arrayOrNull(filter.Types),
-			"limit":     limit + 1,
-			"offset":    offset,
-			"subjects":  arrayOrNull(filter.Subjects),
-			"is_bot":    filter.OnlyBots,
-		}
-		contacts []*model.Contact
-	)
-
-	rows, err := c.db.Master().Query(ctx, query, args)
+	stmt, args, err := c.prepareContactSearchQuery(filter)
 	if err != nil {
-		return nil, fmt.Errorf("error search contacts: %v", err)
+		return nil, err
 	}
 
-	if contacts, err = pgx.CollectRows(rows, pgx.RowToAddrOfStructByNameLax[model.Contact]); err != nil {
-		return nil, fmt.Errorf("error search contacts: %v", err)
+	rows, err := c.db.Master().Query(ctx, stmt, args...)
+	if err != nil {
+		return nil, errors.Internal("querying contact search query", errors.WithCause(err), errors.WithID("postgres.contact_store.search"))
+	}
+
+	contacts, err := pgx.CollectRows(rows, pgx.RowToAddrOfStructByNameLax[model.Contact])
+	if err != nil {
+		return nil, errors.Internal(
+			"collecting contact search query result",
+			errors.WithCause(err),
+			errors.WithID("postgres.contact_store.search"),
+			errors.WithValue("details", pg.ExtractPgErrorMap(err)),
+		)
 	}
 
 	return contacts, nil
 }
 
-func arrayOrNull[T any](v []T) any {
-	if len(v) > 0 {
-		return v
+func (c *contactStore) prepareContactSearchQuery(filter *model.ContactSearchRequest) (string, []any, error) {
+	const (
+		contactAlias string = "c"
+		viaAlias     string = "v"
+	)
+
+	const (
+		linkVia int = 1 << iota
+	)
+
+	links := 0
+	viaJoin := func(selectBuilder sq.SelectBuilder) sq.SelectBuilder {
+		if links&linkVia != 0 {
+			return selectBuilder
+		}
+
+		links |= linkVia
+
+		selectBuilder = selectBuilder.LeftJoin(
+			`lateral (
+				select jsonb_agg(to_jsonb(v.*)) as via
+				from "im_contact"."via" v
+				where v.contact_id = c.id
+			) v on true`,
+		)
+
+		return selectBuilder
 	}
 
-	return nil
+	searchFields := filter.Fields
+	if len(searchFields) > 0 {
+		if searchFields = store.SanitizeFields(searchFields, model.ContactAllowedFields()); len(searchFields) == 0 {
+			return "", nil, errors.InvalidArgument("zero requested fields are allowed", errors.WithID("postgres.contact_store.prepare_contact_search_query"))
+		}
+	} else {
+		searchFields = model.ContactAllowedFields()
+	}
+
+	contactSelect := (sq.SelectBuilder{}).From((*model.Contact)(nil).TableName() + " " + contactAlias).PlaceholderFormat(sq.Dollar)
+
+	for _, field := range searchFields {
+		switch field {
+		case "via":
+			contactSelect = viaJoin(contactSelect)
+			contactSelect = contactSelect.Columns(Ident(viaAlias, field))
+		default:
+			contactSelect = contactSelect.Columns(Ident(contactAlias, field))
+		}
+	}
+
+	contactSelect = ApplyPaging(int(filter.Page), int(filter.Size), contactSelect)
+
+	if sortingField, sortOperator := ExtractSortingOperator(filter.Sort); sortOperator != "" && sortingField != "" {
+		contactSelect = contactSelect.OrderBy(sortingField + " " + sortOperator)
+	}
+
+	if filter.DomainID != nil && *filter.DomainID > 0 {
+		contactSelect = contactSelect.Where(sq.Eq{Ident(contactAlias, "domain_id"): *filter.DomainID})
+	}
+
+	if len(filter.IDs) > 0 {
+		contactSelect = contactSelect.Where(sq.Eq{Ident(contactAlias, "id"): filter.IDs})
+	}
+
+	if q := filter.Q; q != nil && *q != "" {
+		searchPattern := *q + "%"
+		contactSelect = contactSelect.Where(sq.Or{
+			sq.ILike{Ident(contactAlias, "username"): searchPattern},
+			sq.ILike{Ident(contactAlias, "name"): searchPattern},
+		})
+	}
+
+	if len(filter.Apps) > 0 {
+		contactSelect = contactSelect.Where(sq.Eq{Ident(contactAlias, "application_id"): filter.Apps})
+	}
+
+	if len(filter.Issuers) > 0 {
+		contactSelect = contactSelect.Where(sq.Eq{Ident(contactAlias, "issuer_id"): filter.Issuers})
+	}
+
+	if len(filter.Types) > 0 {
+		contactSelect = contactSelect.Where(sq.Eq{Ident(contactAlias, "type"): filter.Types})
+	}
+
+	if len(filter.Subjects) > 0 {
+		contactSelect = contactSelect.Where(sq.Eq{Ident(contactAlias, "subject"): filter.Subjects})
+	}
+
+	if filter.OnlyBots != nil {
+		contactSelect = contactSelect.Where(sq.Eq{Ident(contactAlias, "is_bot"): *filter.OnlyBots})
+	}
+
+	stmt, args, err := contactSelect.ToSql()
+	if err != nil {
+		return "", nil, errors.New("building stmt for contact search", errors.WithCause(err), errors.WithCode(codes.FailedPrecondition), errors.WithID("postgres.contact_store.prepare_contact_search_query"))
+	}
+
+	return stmt, args, nil
 }
 
 // Update implements [store.ContactStore].

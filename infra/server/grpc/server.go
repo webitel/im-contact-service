@@ -10,8 +10,10 @@ import (
 	"strconv"
 
 	"buf.build/go/protovalidate"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	validatemiddleware "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/protovalidate"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -84,7 +86,6 @@ type Config struct {
 
 type Option func(*Config) error
 
-// New provides a new gRPC server.
 func New(addr string, opts ...Option) (*Server, error) {
 	var (
 		conf    Config
@@ -101,6 +102,8 @@ func New(addr string, opts ...Option) (*Server, error) {
 		log = slog.Default()
 	}
 
+	rpcLogger := log.With("component", "grpc-server")
+
 	if addr == "" {
 		addr = ":0"
 	}
@@ -114,11 +117,25 @@ func New(addr string, opts ...Option) (*Server, error) {
 		return nil, err
 	}
 
+	logTraceID := func(ctx context.Context) logging.Fields {
+		if span := trace.SpanContextFromContext(ctx); span.IsSampled() {
+			return logging.Fields{"traceID", span.TraceID().String()}
+		}
+
+		return nil
+	}
+
+	loggingOpts := []logging.Option{
+		logging.WithFieldsFromContext(logTraceID),
+		logging.WithLevels(logging.DefaultServerCodeToLevel),
+	}
+
 	s := grpc.NewServer(
 		grpc.Creds(grpcTLS),
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(
 			intrcp.UnaryServerErrorInterceptor(),
+			logging.UnaryServerInterceptor(interceptorLogger(rpcLogger), loggingOpts...),
 			validatemiddleware.UnaryServerInterceptor(validator),
 		),
 	)
