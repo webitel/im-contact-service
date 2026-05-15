@@ -14,13 +14,13 @@ import (
 const MaxCharactersInDisableReason int = 255
 
 type ViaCommunication struct {
-	ContactID     uuid.UUID      `db:"contact_id"`
-	Via           string         `db:"via"`
-	Disable       bool           `db:"disable"`
-	DisableReason *string        `db:"disable_reason"`
-	CreatedAt     time.Time      `db:"created_at"`
-	UpdatedAt     time.Time      `db:"updated_at"`
-	Metadata      map[string]any `db:"metadata"`
+	ContactID     uuid.UUID      `db:"contact_id" json:"contact_id"`
+	Via           string         `db:"via" json:"via"`
+	Disable       bool           `db:"disable" json:"disable"`
+	DisableReason *string        `db:"disable_reason" json:"disable_reason"`
+	CreatedAt     time.Time      `db:"created_at" json:"created_at"`
+	UpdatedAt     time.Time      `db:"updated_at" json:"updated_at"`
+	Metadata      map[string]any `db:"metadata" json:"metadata"`
 }
 
 func (communication *ViaCommunication) CreatedAtUTCUnix() int64 {

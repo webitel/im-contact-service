@@ -52,3 +52,38 @@ func ErrorIntegrityViolation(err error) (bool, error) {
 
 	return false, nil
 }
+
+func ExtractPgErrorMap(err error) map[string]any {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return nil
+	}
+
+	fields := map[string]any{
+		"code":     pgErr.Code,
+		"severity": pgErr.Severity,
+		"message":  pgErr.Message,
+	}
+
+	if pgErr.Detail != "" {
+		fields["detail"] = pgErr.Detail
+	}
+
+	if pgErr.Hint != "" {
+		fields["hint"] = pgErr.Hint
+	}
+
+	if pgErr.TableName != "" {
+		fields["table"] = pgErr.TableName
+	}
+
+	if pgErr.ColumnName != "" {
+		fields["column"] = pgErr.ColumnName
+	}
+
+	if pgErr.ConstraintName != "" {
+		fields["constraint"] = pgErr.ConstraintName
+	}
+
+	return fields
+}
