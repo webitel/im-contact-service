@@ -2,12 +2,15 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/url"
 	"os"
 	"time"
 
 	"go.opentelemetry.io/contrib/bridges/otelslog"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.38.0"
 	"go.uber.org/fx"
@@ -88,12 +91,22 @@ func ProvideLogger(cfg *config.Config, lc fx.Lifecycle) (*slog.Logger, error) {
 		)
 		otelHandler := otelslog.NewHandler("slog")
 
-		shutdown, err := otelsdk.Configure(context.Background(), otelsdk.WithResource(service),
+		metricExporter, err := otlpmetricgrpc.New(context.Background())
+		if err != nil {
+			return nil, fmt.Errorf("create otlp metric exporter: %w", err)
+		}
+
+		reader := metric.NewPeriodicReader(metricExporter)
+
+		shutdown, err := otelsdk.Configure(
+			context.Background(),
+			otelsdk.WithResource(service),
 			otelsdk.WithLogBridge(
 				func() {
 					handlers = append(handlers, otelHandler)
 				},
 			),
+			otelsdk.WithMetricOptions(metric.WithReader(reader)),
 		)
 		if err != nil {
 			return nil, err
@@ -231,7 +244,12 @@ func ProvideSD(cfg *config.Config, log *slog.Logger, lc fx.Lifecycle) (discovery
 }
 
 func ProvideNewDBConnection(cfg *config.Config, l *slog.Logger, lc fx.Lifecycle) (*pg.PgxDB, error) {
-	db, err := pg.New(context.Background(), l, cfg.Postgres.DSN)
+	config := pg.ConnectionConfig{
+		DSN:         cfg.Postgres.DSN,
+		OTELEnabled: cfg.Log.Otel,
+	}
+
+	db, err := pg.New(context.Background(), l, config)
 	if err != nil {
 		return nil, err
 	}

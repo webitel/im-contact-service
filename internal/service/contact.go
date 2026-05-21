@@ -44,7 +44,7 @@ func NewContactService(store store.ContactStore, publisher EventPublisher, logge
 // Search retrieves contacts based on the provided filter.
 func (s *contactService) Search(ctx context.Context, filter *model.ContactSearchRequest) ([]*model.Contact, error) {
 	if filter == nil {
-		return nil, errors.InvalidArgument("filter is required")
+		return nil, errors.InvalidArgument("filter is required", errors.WithID("service.contact.search"))
 	}
 
 	return s.store.Search(ctx, filter)

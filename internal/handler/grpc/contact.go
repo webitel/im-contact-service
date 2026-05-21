@@ -54,6 +54,7 @@ func (c *ContactServer) SearchContact(ctx context.Context, request *impb.SearchC
 		DomainID: &domainID,
 		IDs:      ids,
 		OnlyBots: request.OnlyBots,
+		Via:      request.GetVia(),
 	})
 	if err != nil {
 		return nil, err

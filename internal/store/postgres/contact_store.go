@@ -151,13 +151,25 @@ func (c *contactStore) prepareContactSearchQuery(filter *model.ContactSearchRequ
 		return selectBuilder
 	}
 
+	viaLeftJoin := func(selectBuilder sq.SelectBuilder) sq.SelectBuilder {
+		if links&linkVia != 0 {
+			return selectBuilder
+		}
+
+		links |= linkVia
+
+		selectBuilder = selectBuilder.LeftJoin("im_contact.via v on v.contact_id = c.id")
+
+		return selectBuilder
+	}
+
 	searchFields := filter.Fields
 	if len(searchFields) > 0 {
 		if searchFields = store.SanitizeFields(searchFields, model.ContactAllowedFields()); len(searchFields) == 0 {
 			return "", nil, errors.InvalidArgument("zero requested fields are allowed", errors.WithID("postgres.contact_store.prepare_contact_search_query"))
 		}
 	} else {
-		searchFields = model.ContactAllowedFields()
+		searchFields = (new(model.Contact)).DefaultFields()
 	}
 
 	contactSelect := (sq.SelectBuilder{}).From((*model.Contact)(nil).TableName() + " " + contactAlias).PlaceholderFormat(sq.Dollar)
@@ -212,6 +224,19 @@ func (c *contactStore) prepareContactSearchQuery(filter *model.ContactSearchRequ
 
 	if filter.OnlyBots != nil {
 		contactSelect = contactSelect.Where(sq.Eq{Ident(contactAlias, "is_bot"): *filter.OnlyBots})
+	}
+
+	if filter.Via != "" {
+		if linkVia&links != 0 {
+			jsonCriteria := fmt.Sprintf(`[{"via":"%s"}]`, filter.Via)
+
+			contactSelect = contactSelect.Where(
+				sq.Expr(fmt.Sprintf("%s.via @> ?::jsonb", viaAlias), jsonCriteria),
+			)
+		} else {
+			contactSelect = viaLeftJoin(contactSelect)
+			contactSelect = contactSelect.Where(sq.Eq{Ident(viaAlias, "via"): filter.Via})
+		}
 	}
 
 	stmt, args, err := contactSelect.ToSql()
