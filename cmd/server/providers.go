@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"go.opentelemetry.io/contrib/bridges/otelslog"
+	"go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -18,6 +19,7 @@ import (
 	"github.com/webitel/webitel-go-kit/infra/discovery"
 	otelsdk "github.com/webitel/webitel-go-kit/infra/otel/sdk"
 	"github.com/webitel/webitel-go-kit/infra/profiler"
+	"github.com/webitel/webitel-go-kit/pkg/errors"
 	"github.com/webitel/webitel-go-kit/pkg/logger"
 
 	"github.com/webitel/im-contact-service/config"
@@ -271,4 +273,26 @@ func ProvideProfiler(cfg *config.Config, log *slog.Logger) (profiler.Config, log
 		MutexProfileFraction: cfg.Profiler.MutexProfileFraction,
 		BlockProfileRate:     cfg.Profiler.BlockProfileRate,
 	}, logger.NewSlog(log)
+}
+
+func ProvideRuntimeMetrics(cfg *config.Config, logger *slog.Logger, lifecycle fx.Lifecycle) {
+	lifecycle.Append(fx.Hook{
+		OnStart: func(context.Context) error {
+			if !cfg.Log.Otel {
+				logger.Info("OTEL disabled, skipping setting up runtime metrics")
+
+				return nil
+			}
+
+			logger.Info("starting collecting OpenTelemetry runtime metrics")
+
+			if err := runtime.Start(runtime.WithMinimumReadMemStatsInterval(time.Second * 5)); err != nil {
+				logger.Error("starting collecting OpenTelemetry runtime metrics", "error", err)
+
+				return errors.Internal("starting collecting otel runtime metrics", errors.WithCause(err), errors.WithID("server.providers.provide_runtime_metrics"))
+			}
+
+			return nil
+		},
+	})
 }

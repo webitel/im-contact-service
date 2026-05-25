@@ -30,6 +30,7 @@ func MainModule(cfg *config.Config) fx.Option {
 		),
 		fx.Invoke(func(_ discovery.DiscoveryProvider) error { return nil }),
 		tls.Module,
+		fx.Invoke(ProvideRuntimeMetrics),
 		pubsub.Module,
 		postgres.Module,
 		service.Module,

@@ -26,7 +26,7 @@ type SettingsStore interface {
 }
 
 type ViaStore interface {
-	Create(ctx context.Context, communication *model.ViaCommunication) (*model.ViaCommunication, error)
+	Create(ctx context.Context, communication *model.CreateViaCommunicationCommand) (*model.ViaCommunication, error)
 	Update(ctx context.Context, communication *model.ViaCommunication) (*model.ViaCommunication, error)
 	PartialUpdate(ctx context.Context, updateCommand *model.CommunicationViaPartialUpdateCmd) (*model.ViaCommunication, error)
 	Search(ctx context.Context, filter *model.SearchViaCommunicationsFilter) ([]*model.ViaCommunication, error)
