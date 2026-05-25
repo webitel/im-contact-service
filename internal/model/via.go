@@ -114,3 +114,61 @@ func (communicationPartialUpdateCmd *CommunicationViaPartialUpdateCmd) Validate(
 
 	return nil
 }
+
+type CreateViaCommunicationCommand struct {
+	ContactID     uuid.UUID
+	Iss           string
+	Sub           string
+	Disable       bool
+	DisableReason *string
+	Metadata      map[string]any
+	Via           string
+}
+
+func (c *CreateViaCommunicationCommand) Validate() error {
+	if c == nil {
+		return errors.InvalidArgument("received nil pointer call for create contact request", errors.WithID("model.via.validate"))
+	}
+
+	if c.ContactID == uuid.Nil && (c.Iss == "" || c.Sub == "") {
+		return errors.InvalidArgument("contact id or pair (iss + sub) is required", errors.WithID("model.via.validate"))
+	}
+
+	if strings.Trim(c.Via, " ") == "" {
+		return errors.InvalidArgument("via is required", errors.WithID("model.via.validate"))
+	}
+
+	if c.ContactID != uuid.Nil {
+		return nil
+	}
+
+	if c.Iss == "" || c.Sub == "" {
+		return errors.InvalidArgument("both values in pair (iss + sub) are required", errors.WithID("model.via.validate"))
+	}
+
+	return nil
+}
+
+func (c *CreateViaCommunicationCommand) GetContactIDPtr() *uuid.UUID {
+	if c.ContactID == uuid.Nil {
+		return nil
+	}
+
+	return &c.ContactID
+}
+
+func (c *CreateViaCommunicationCommand) GetIssPtr() *string {
+	if c.Iss == "" {
+		return nil
+	}
+
+	return &c.Iss
+}
+
+func (c *CreateViaCommunicationCommand) GetSubPtr() *string {
+	if c.Sub == "" {
+		return nil
+	}
+
+	return &c.Sub
+}

@@ -24,17 +24,25 @@ func newViaServer(via service.ViaService) *ViaServer {
 }
 
 func (viaServer *ViaServer) Create(ctx context.Context, req *impb.CreateViaRequest) (*impb.Via, error) {
-	contactID, err := uuid.Parse(req.GetContactId())
-	if err != nil {
-		return nil, errors.InvalidArgument("contact id has invalid format", errors.WithCause(err), errors.WithID("grpc.via.create"))
+	contactID := uuid.Nil
+
+	if req.GetContactId() != "" {
+		parsedContactID, err := uuid.Parse(req.GetContactId())
+		if err != nil {
+			return nil, errors.InvalidArgument("contact id has invalid format", errors.WithCause(err), errors.WithID("grpc.via.create"))
+		}
+
+		contactID = parsedContactID
 	}
 
-	via := &model.ViaCommunication{
+	via := &model.CreateViaCommunicationCommand{
 		ContactID:     contactID,
 		Via:           req.GetVia(),
 		Disable:       req.GetDisable(),
 		DisableReason: req.DisableReason,
 		Metadata:      req.GetMetadata().AsMap(),
+		Iss:           req.GetIss(),
+		Sub:           req.GetSub(),
 	}
 
 	created, err := viaServer.via.Create(ctx, via)

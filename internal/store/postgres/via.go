@@ -21,7 +21,7 @@ func newViaStore(db *pg.PgxDB) *via {
 	return &via{db: db}
 }
 
-func (communicationStore *via) Create(ctx context.Context, communication *model.ViaCommunication) (*model.ViaCommunication, error) {
+func (communicationStore *via) Create(ctx context.Context, communication *model.CreateViaCommunicationCommand) (*model.ViaCommunication, error) {
 	stmt, args := communicationStore.prepareCreateStmt(communication)
 
 	rows, err := communicationStore.db.Master().Query(ctx, stmt, args)
@@ -58,23 +58,36 @@ func (communicationStore *via) Create(ctx context.Context, communication *model.
 	return savedCommunication, nil
 }
 
-func (communicationStore *via) prepareCreateStmt(communication *model.ViaCommunication) (string, pgx.NamedArgs) {
+func (communicationStore *via) prepareCreateStmt(communication *model.CreateViaCommunicationCommand) (string, pgx.NamedArgs) {
 	query := `
+		with target_contact as (
+			select c.id
+			from im_contact.contact c
+			where (@Iss::text is not null and c.issuer_id = @Iss)
+			and (@Sub::text is not null and c.subject_id = @Sub)
+			limit 1
+		)
 		insert into "im_contact"."via" (
 			"contact_id", "via", "disable", "disable_reason", "metadata"
 		)
 		values (
-			@ContactID, @Via,  @Disable, @DisableReason, @Metadata
+			coalesce(@ContactID, (select tc.id from target_contact tc)),
+			@Via,
+			@Disable,
+			@DisableReason,
+			@Metadata
 		)
-		returning "contact_id", "via", "disable","disable_reason", "metadata", "created_at", "updated_at"
+		returning "contact_id", "via", "disable","disable_reason", "metadata", "created_at", "updated_at";
 	`
 
 	args := pgx.NamedArgs{
-		"ContactID":     communication.ContactID,
+		"ContactID":     communication.GetContactIDPtr(),
 		"Via":           communication.Via,
 		"Disable":       communication.Disable,
 		"DisableReason": communication.DisableReason,
 		"Metadata":      communication.Metadata,
+		"Iss":           communication.GetIssPtr(),
+		"Sub":           communication.GetSubPtr(),
 	}
 
 	return query, args

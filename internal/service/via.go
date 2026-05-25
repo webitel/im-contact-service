@@ -23,11 +23,11 @@ func newCommunication(logger *slog.Logger, communicationStore store.ViaStore, pu
 	return &via{logger: log, communicationStore: communicationStore, publisher: publisher}
 }
 
-func (communicationService *via) Create(ctx context.Context, communication *model.ViaCommunication) (*model.ViaCommunication, error) {
+func (communicationService *via) Create(ctx context.Context, communication *model.CreateViaCommunicationCommand) (*model.ViaCommunication, error) {
 	log := communicationService.logger.With("operation", "create")
 
 	if err := communication.Validate(); err != nil {
-		log.Warn("validation error: ", "error", err)
+		log.Warn("validation error", "error", err)
 
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (communicationService *via) Update(ctx context.Context, communication *mode
 	log := communicationService.logger.With("operation", "update")
 
 	if err := communication.Validate(); err != nil {
-		log.Warn("validation error: ", "error", err)
+		log.Warn("validation error", "error", err)
 
 		return nil, err
 	}
