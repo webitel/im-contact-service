@@ -170,3 +170,26 @@ func (c *ContactServer) Patch(ctx context.Context, request *impb.PatchContactReq
 
 	return mapper.MarshalContact(contact), nil
 }
+
+func (c *ContactServer) Locate(ctx context.Context, request *impb.LocateContactRequest) (*impb.LocateContactResponse, error) {
+	var id uuid.UUID
+	if err := utils.ParseStringToUUID(request.GetId(), &id); err != nil {
+		return nil, err
+	}
+
+	locateQuery := model.LocateContactRequest{
+		ID: id,
+		DC: int(request.GetDomainId()),
+	}
+
+	contact, err := c.handler.Locate(ctx, &locateQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	pbContact := mapper.MarshalContact(contact)
+
+	return &impb.LocateContactResponse{
+		Item: pbContact,
+	}, nil
+}

@@ -441,3 +441,61 @@ func (c *contactStore) Upsert(ctx context.Context, contact *model.Contact) (*mod
 
 	return &result, isInsert, nil
 }
+
+func (c *contactStore) Locate(ctx context.Context, locate *model.LocateContactRequest) (*model.Contact, error) {
+	stmt, args, err := c.prepareLocateContactStore(locate)
+	if err != nil {
+		return nil, errors.InvalidArgument(
+			"preparing locate contact stmt",
+			errors.WithCause(err),
+			errors.WithID("postgres.contact_store.locate"),
+		)
+	}
+
+	rows, err := c.db.Master().Query(ctx, stmt, args...)
+	if err != nil {
+		return nil, errors.Internal("executing locate contact stmt", errors.WithCause(err), errors.WithID("postgres.contact_store.locate"))
+	}
+
+	contact, err := pgx.CollectExactlyOneRow(rows, pgx.RowToAddrOfStructByNameLax[model.Contact])
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errors.NotFound("contact doesn`t exist", errors.WithCause(err), errors.WithID("postgres.contact_store.locate"))
+		}
+
+		return nil, errors.Internal("collecting locate contact query result", errors.WithCause(err), errors.WithID("postgres.contact_store.locate"))
+	}
+
+	return contact, nil
+}
+
+func (c *contactStore) prepareLocateContactStore(locate *model.LocateContactRequest) (string, []any, error) {
+	fields := make([]string, 0, len(model.ContactAllowedFields()))
+
+	for _, field := range model.ContactAllowedFields() {
+		switch field {
+		case "via":
+			fields = append(fields, Ident("v", field))
+		default:
+			fields = append(fields, Ident("c", field))
+		}
+	}
+
+	locateContactSelectBuilder := sq.Select(fields...).From("im_contact.contact c").Limit(1).PlaceholderFormat(sq.Dollar)
+	locateContactSelectBuilder = locateContactSelectBuilder.LeftJoin(`
+		lateral (
+			select jsonb_agg(to_jsonb(cv.*)) as via
+			from im_contact.via cv
+			where cv.contact_id = c.id
+		) v on true
+	`)
+
+	locateContactSelectBuilder = locateContactSelectBuilder.Where(
+		sq.Eq{
+			"c.domain_id": locate.DC,
+			"c.id":        locate.ID,
+		},
+	)
+
+	return locateContactSelectBuilder.ToSql()
+}
