@@ -213,3 +213,16 @@ func (s *contactService) validateCreate(input *model.Contact) error {
 
 	return nil
 }
+
+func (s *contactService) Locate(ctx context.Context, locate *model.LocateContactRequest) (*model.Contact, error) {
+	if err := locate.Validate(); err != nil {
+		return nil, err
+	}
+
+	contact, err := s.store.Locate(ctx, locate)
+	if err != nil {
+		return nil, err
+	}
+
+	return contact, nil
+}

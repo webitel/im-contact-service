@@ -25,6 +25,7 @@ type ContactService interface {
 	PartialUpdate(ctx context.Context, cmd *model.PartialUpdateContactRequest) (*model.Contact, error)
 	DeleteByDomain(ctx context.Context, domainID int) error
 	DeleteBotByFlowID(ctx context.Context, flowID string) error
+	Locate(ctx context.Context, locate *model.LocateContactRequest) (*model.Contact, error)
 }
 
 type ContactPrivacyService interface {

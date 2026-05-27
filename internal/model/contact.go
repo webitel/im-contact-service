@@ -1,6 +1,10 @@
 package model
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+
+	"github.com/webitel/webitel-go-kit/pkg/errors"
+)
 
 type Contact struct {
 	BaseModel `json:"base_model"`
@@ -107,4 +111,25 @@ type CreateContactRequest struct {
 	Name          string            `json:"name"`
 	Username      string            `json:"username"`
 	Metadata      map[string]string `json:"metadata"`
+}
+
+type LocateContactRequest struct {
+	ID uuid.UUID
+	DC int
+}
+
+func (l *LocateContactRequest) Validate() error {
+	if l == nil {
+		return errors.InvalidArgument("received nil pointer call for locate contact request", errors.WithID("model.contact.validate"))
+	}
+
+	if l.DC <= 0 {
+		return errors.InvalidArgument("domain id is required", errors.WithID("model.contact.validate"))
+	}
+
+	if l.ID == uuid.Nil {
+		return errors.InvalidArgument("contact id is required", errors.WithID("model.contact.validate"))
+	}
+
+	return nil
 }

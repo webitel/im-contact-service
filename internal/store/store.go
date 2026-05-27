@@ -18,6 +18,7 @@ type ContactStore interface {
 	Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, bool, error)
 	PartialUpdate(ctx context.Context, query queries.Query) (*model.Contact, error)
 	DeleteBotByFlowID(ctx context.Context, flowID string) error
+	Locate(ctx context.Context, locate *model.LocateContactRequest) (*model.Contact, error)
 }
 type SettingsStore interface {
 	Get(ctx context.Context, contactID uuid.UUID) (*model.ContactSettings, error)
