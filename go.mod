@@ -21,7 +21,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.40.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.40.0
 	github.com/urfave/cli/v2 v2.27.7
-	github.com/webitel/webitel-go-kit/infra/discovery v0.0.0-20260202123728-94059b0e19be
+	github.com/webitel/webitel-go-kit/infra/discovery v0.0.0-20260602143553-df89d5e34680
 	github.com/webitel/webitel-go-kit/infra/otel v0.0.0-20251222125635-d60448d23a82
 	github.com/webitel/webitel-go-kit/infra/profiler v0.0.0-20260323001146-8a6a55d94da8
 	github.com/webitel/webitel-go-kit/pkg/errors v0.0.0-20251222125635-d60448d23a82
@@ -156,7 +156,7 @@ require (
 
 require (
 	github.com/exaring/otelpgx v0.10.0
-	github.com/webitel/webitel-go-kit/appconfig v0.0.0-20260602123706-4e69c07a5ba7
+	github.com/webitel/webitel-go-kit/appconfig v0.0.0-20260602143553-df89d5e34680
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.68.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.36.0
 	go.opentelemetry.io/otel/sdk/metric v1.43.0
