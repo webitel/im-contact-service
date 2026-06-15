@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	intrcp "github.com/webitel/webitel-go-kit/pkg/interceptors"
+	"github.com/webitel/webitel-go-kit/pkg/semconv"
 
 	"github.com/webitel/im-contact-service/config"
 	infratls "github.com/webitel/im-contact-service/infra/tls"
@@ -49,7 +50,7 @@ func ProvideServer(conf *config.Config, logger *slog.Logger, tls *infratls.Confi
 				logger.Info(fmt.Sprintf("listen grpc %s:%d", srv.Host(), srv.Port()))
 
 				if err := srv.Listen(); err != nil {
-					logger.Error("grpc server error", "err", err)
+					logger.Error("grpc server error", semconv.ErrorKey, err)
 				}
 			}()
 
@@ -57,7 +58,7 @@ func ProvideServer(conf *config.Config, logger *slog.Logger, tls *infratls.Confi
 		},
 		OnStop: func(_ context.Context) error {
 			if err := srv.Shutdown(); err != nil {
-				logger.Error("error stopping grpc server", "err", err.Error())
+				logger.Error("error stopping grpc server", semconv.ErrorKey, err.Error())
 
 				return err
 			}
@@ -102,7 +103,7 @@ func New(addr string, opts ...Option) (*Server, error) {
 		log = slog.Default()
 	}
 
-	rpcLogger := log.With("component", "grpc-server")
+	rpcLogger := log.With(semconv.ComponentKey, "grpc-server")
 
 	if addr == "" {
 		addr = ":0"
