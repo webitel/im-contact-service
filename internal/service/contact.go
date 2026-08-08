@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/webitel/webitel-go-kit/pkg/errors"
+	"github.com/webitel/webitel-go-kit/pkg/semconv"
 
 	"github.com/webitel/im-contact-service/internal/domain/events"
 	"github.com/webitel/im-contact-service/internal/handler/amqp"
@@ -37,7 +38,7 @@ func NewContactService(store store.ContactStore, publisher EventPublisher, logge
 	return &contactService{
 		store:     store,
 		publisher: publisher,
-		logger:    logger.With("component", "contact_service"),
+		logger:    logger.With(semconv.ComponentKey, "contact_service"),
 	}
 }
 
@@ -79,14 +80,14 @@ func (s *contactService) Create(ctx context.Context, input *model.Contact) (*mod
 func (s *contactService) Upsert(ctx context.Context, contact *model.Contact) (*model.Contact, error) {
 	log := s.logger.With("operation", "upsert")
 	if err := s.validateCreate(contact); err != nil {
-		log.Warn("validating create request", "error", err)
+		log.Warn("validating create request", semconv.ErrorKey, err)
 
 		return nil, err
 	}
 
 	contact, isInsert, err := s.store.Upsert(ctx, contact)
 	if err != nil {
-		log.Error("performing upsert query for contact", "error", err)
+		log.Error("performing upsert query for contact", semconv.ErrorKey, err)
 
 		return nil, err
 	}

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/webitel/webitel-go-kit/pkg/errors"
+	"github.com/webitel/webitel-go-kit/pkg/semconv"
 
 	"github.com/webitel/im-contact-service/internal/domain/events"
 	"github.com/webitel/im-contact-service/internal/model"
@@ -18,7 +19,7 @@ type via struct {
 }
 
 func newCommunication(logger *slog.Logger, communicationStore store.ViaStore, publisher EventPublisher) *via {
-	log := logger.With("component", "service.communication")
+	log := logger.With(semconv.ComponentKey, "service.communication")
 
 	return &via{logger: log, communicationStore: communicationStore, publisher: publisher}
 }
@@ -27,7 +28,7 @@ func (communicationService *via) Create(ctx context.Context, communication *mode
 	log := communicationService.logger.With("operation", "create")
 
 	if err := communication.Validate(); err != nil {
-		log.Warn("validation error", "error", err)
+		log.Warn("validation error", semconv.ErrorKey, err)
 
 		return nil, err
 	}
@@ -36,7 +37,7 @@ func (communicationService *via) Create(ctx context.Context, communication *mode
 	if err != nil {
 		log.Error(
 			"saving contact communication",
-			"error", err,
+			semconv.ErrorKey, err,
 			"contact_id", communication.ContactID.String(),
 			"via", communication.Via,
 		)
@@ -45,7 +46,7 @@ func (communicationService *via) Create(ctx context.Context, communication *mode
 	}
 
 	if err = communicationService.publisher.Publish(ctx, events.NewViaCreatedEvent(savedCommunication)); err != nil {
-		log.Error("publishing via created event", "error", err, "contact_id", communication.ContactID.String(), "via", communication.Via)
+		log.Error("publishing via created event", semconv.ErrorKey, err, "contact_id", communication.ContactID.String(), "via", communication.Via)
 
 		return savedCommunication, errors.Internal("publishing via created event", errors.WithCause(err), errors.WithID("service.communication.create"))
 	}
@@ -57,7 +58,7 @@ func (communicationService *via) Update(ctx context.Context, communication *mode
 	log := communicationService.logger.With("operation", "update")
 
 	if err := communication.Validate(); err != nil {
-		log.Warn("validation error", "error", err)
+		log.Warn("validation error", semconv.ErrorKey, err)
 
 		return nil, err
 	}
@@ -66,7 +67,7 @@ func (communicationService *via) Update(ctx context.Context, communication *mode
 	if err != nil {
 		log.Error(
 			"full updating contact communication",
-			"error", err,
+			semconv.ErrorKey, err,
 			"contact_id", communication.ContactID.String(),
 			"via", communication.Via,
 		)
@@ -75,7 +76,7 @@ func (communicationService *via) Update(ctx context.Context, communication *mode
 	}
 
 	if err = communicationService.publisher.Publish(ctx, events.NewViaUpdatedEvent(updatetCommunication)); err != nil {
-		log.Error("publishing via updated event", "error", err, "contact_id", updatetCommunication.ContactID, "new_via", updatetCommunication.Via, "old_via", communication.Via)
+		log.Error("publishing via updated event", semconv.ErrorKey, err, "contact_id", updatetCommunication.ContactID, "new_via", updatetCommunication.Via, "old_via", communication.Via)
 
 		return updatetCommunication, errors.Internal("publishing updaed via event", errors.WithCause(err), errors.WithID("service.communication.update"))
 	}
@@ -87,20 +88,20 @@ func (communicationService *via) PartialUpdate(ctx context.Context, updateComman
 	log := communicationService.logger.With("operation", "partial_update")
 
 	if err := updateCommand.Validate(); err != nil {
-		log.Warn("validating partial update command", "error", err)
+		log.Warn("validating partial update command", semconv.ErrorKey, err)
 
 		return nil, err
 	}
 
 	updated, err := communicationService.communicationStore.PartialUpdate(ctx, updateCommand)
 	if err != nil {
-		log.Error("partial updating contact communication", "error", err)
+		log.Error("partial updating contact communication", semconv.ErrorKey, err)
 
 		return nil, err
 	}
 
 	if err = communicationService.publisher.Publish(ctx, events.NewViaUpdatedEvent(updated)); err != nil {
-		log.Error("publishing via partially updated event", "error", err, "contact_id", updated.ContactID, "via", updated.Via)
+		log.Error("publishing via partially updated event", semconv.ErrorKey, err, "contact_id", updated.ContactID, "via", updated.Via)
 
 		return updated, errors.Internal("publishing via partially updated event", errors.WithCause(err), errors.WithID("service.communication.partial_update"))
 	}
@@ -112,14 +113,14 @@ func (communicationService *via) Search(ctx context.Context, filter *model.Searc
 	log := communicationService.logger.With("operation", "search")
 
 	if err := filter.Validate(); err != nil {
-		log.Warn("validating search communication option request", "error", err)
+		log.Warn("validating search communication option request", semconv.ErrorKey, err)
 
 		return nil, err
 	}
 
 	records, err := communicationService.communicationStore.Search(ctx, filter)
 	if err != nil {
-		log.Error("retrieving records from store", "error", err)
+		log.Error("retrieving records from store", semconv.ErrorKey, err)
 
 		return nil, err
 	}

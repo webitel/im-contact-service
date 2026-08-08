@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
-	"os"
 	"time"
 
 	"go.opentelemetry.io/contrib/bridges/otelslog"
@@ -13,14 +12,16 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
-	semconv "go.opentelemetry.io/otel/semconv/v1.38.0"
+	otelsemconv "go.opentelemetry.io/otel/semconv/v1.38.0"
 	"go.uber.org/fx"
 
 	"github.com/webitel/webitel-go-kit/infra/discovery"
 	otelsdk "github.com/webitel/webitel-go-kit/infra/otel/sdk"
 	"github.com/webitel/webitel-go-kit/infra/profiler"
+	"github.com/webitel/webitel-go-kit/pkg/depenlog"
 	"github.com/webitel/webitel-go-kit/pkg/errors"
 	"github.com/webitel/webitel-go-kit/pkg/logger"
+	"github.com/webitel/webitel-go-kit/pkg/semconv"
 
 	"github.com/webitel/im-contact-service/config"
 	"github.com/webitel/im-contact-service/infra/db/pg"
@@ -36,66 +37,44 @@ import (
 	_ "github.com/webitel/webitel-go-kit/infra/otel/sdk/trace/stdout"
 )
 
-func ProvideLogger(cfg *config.Config, lc fx.Lifecycle) (*slog.Logger, error) {
+// ProvideLogger builds the service's unified logger via depenlog and returns
+// both the *slog.Logger (slog.SetDefault, for existing consumers) and the
+// logger.Logger (for the kit adapters). depenlog.New installs the logger
+// process-wide: slog.SetDefault plus grpc-go's global logger (UseGRPC).
+//
+// When OTel logging is enabled, the OTel SDK is configured (resource, metrics,
+// log bridge) and logs are routed through depenlog.WithHandler(otelBridge) so
+// the OTel LoggerProvider owns the record schema and trace correlation. The
+// bridge is only wired when a log exporter is actually configured, so
+// metrics-only OTel still falls back to depenlog's plain console/file handler.
+func ProvideLogger(cfg *config.Config, lc fx.Lifecycle) (*slog.Logger, logger.Logger, error) {
 	logSettings := cfg.Log
 
 	if !logSettings.Console && !logSettings.Otel && logSettings.File == "" {
 		logSettings.Console = true
 	}
 
-	level := parseLevel(logSettings.Level)
-	opts := &slog.HandlerOptions{
-		Level: level,
+	depCfg := depenlog.Config{
+		Level:   logSettings.Level,
+		JSON:    logSettings.JSON,
+		File:    logSettings.File,
+		Console: logSettings.Console,
 	}
 
-	var handlers []slog.Handler
-
-	if logSettings.Console {
-		var h slog.Handler
-		if logSettings.JSON {
-			h = slog.NewJSONHandler(os.Stdout, opts)
-		} else {
-			h = slog.NewTextHandler(os.Stdout, opts)
-		}
-
-		handlers = append(handlers, h)
-	}
-
-	// File Handler
-	if logSettings.File != "" {
-		f, err := os.OpenFile(logSettings.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
-		if err != nil {
-			return nil, err
-		}
-
-		lc.Append(fx.Hook{
-			OnStop: func(_ context.Context) error {
-				return f.Close()
-			},
-		})
-
-		var h slog.Handler
-		if logSettings.JSON {
-			h = slog.NewJSONHandler(f, opts)
-		} else {
-			h = slog.NewTextHandler(f, opts)
-		}
-
-		handlers = append(handlers, h)
-	}
+	var opts []depenlog.Option
 
 	if logSettings.Otel {
 		service := resource.NewSchemaless(
-			semconv.ServiceName(model.ServiceName),
-			semconv.ServiceVersion(model.Version),
-			semconv.ServiceInstanceID(discovery.GenerateInstanceID(model.ServiceName)),
-			semconv.ServiceNamespace(model.ServiceNamespace),
+			otelsemconv.ServiceName(model.ServiceName),
+			otelsemconv.ServiceVersion(model.Version),
+			otelsemconv.ServiceInstanceID(discovery.GenerateInstanceID(model.ServiceName)),
+			otelsemconv.ServiceNamespace(model.ServiceNamespace),
 		)
-		otelHandler := otelslog.NewHandler("slog")
+		otelBridge := otelslog.NewHandler("slog")
 
 		metricExporter, err := otlpmetricgrpc.New(context.Background())
 		if err != nil {
-			return nil, fmt.Errorf("create otlp metric exporter: %w", err)
+			return nil, nil, fmt.Errorf("create otlp metric exporter: %w", err)
 		}
 
 		reader := metric.NewPeriodicReader(metricExporter)
@@ -105,13 +84,13 @@ func ProvideLogger(cfg *config.Config, lc fx.Lifecycle) (*slog.Logger, error) {
 			otelsdk.WithResource(service),
 			otelsdk.WithLogBridge(
 				func() {
-					handlers = append(handlers, otelHandler)
+					opts = append(opts, depenlog.WithHandler(otelBridge))
 				},
 			),
 			otelsdk.WithMetricOptions(metric.WithReader(reader)),
 		)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		lc.Append(fx.Hook{
@@ -121,82 +100,12 @@ func ProvideLogger(cfg *config.Config, lc fx.Lifecycle) (*slog.Logger, error) {
 		})
 	}
 
-	var finalHandler slog.Handler
-
-	switch len(handlers) {
-	case 0:
-		finalHandler = slog.NewTextHandler(os.Stdout, opts)
-	case 1:
-		finalHandler = handlers[0]
-	default:
-		finalHandler = MultiHandler(handlers...)
+	kit, err := depenlog.New(depCfg, opts...)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	logger := slog.New(finalHandler)
-	slog.SetDefault(logger)
-
-	return logger, nil
-}
-
-func parseLevel(lvl string) slog.Level {
-	switch lvl {
-	case "debug":
-		return slog.LevelDebug
-	case "info":
-		return slog.LevelInfo
-	case "warn":
-		return slog.LevelWarn
-	case "error":
-		return slog.LevelError
-	default:
-		return slog.LevelInfo
-	}
-}
-
-type multiHandler struct {
-	handlers []slog.Handler
-}
-
-func MultiHandler(handlers ...slog.Handler) slog.Handler {
-	return &multiHandler{handlers: handlers}
-}
-
-func (h *multiHandler) Enabled(ctx context.Context, level slog.Level) bool {
-	for _, hh := range h.handlers {
-		if hh.Enabled(ctx, level) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (h *multiHandler) Handle(ctx context.Context, r slog.Record) error {
-	for _, hh := range h.handlers {
-		if hh.Enabled(ctx, r.Level) {
-			_ = hh.Handle(ctx, r)
-		}
-	}
-
-	return nil
-}
-
-func (h *multiHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	newHandlers := make([]slog.Handler, len(h.handlers))
-	for i, hh := range h.handlers {
-		newHandlers[i] = hh.WithAttrs(attrs)
-	}
-
-	return &multiHandler{handlers: newHandlers}
-}
-
-func (h *multiHandler) WithGroup(name string) slog.Handler {
-	newHandlers := make([]slog.Handler, len(h.handlers))
-	for i, hh := range h.handlers {
-		newHandlers[i] = hh.WithGroup(name)
-	}
-
-	return &multiHandler{handlers: newHandlers}
+	return slog.Default(), kit, nil
 }
 
 func ProvideSD(cfg *config.Config, log *slog.Logger, lc fx.Lifecycle) (discovery.DiscoveryProvider, error) {
@@ -267,12 +176,12 @@ func ProvideNewDBConnection(cfg *config.Config, l *slog.Logger, lc fx.Lifecycle)
 	return db, err
 }
 
-func ProvideProfiler(cfg *config.Config, log *slog.Logger) (profiler.Config, logger.Logger) {
+func ProvideProfiler(cfg *config.Config) profiler.Config {
 	return profiler.Config{
 		Addr:                 cfg.Profiler.Addr,
 		MutexProfileFraction: cfg.Profiler.MutexFraction,
 		BlockProfileRate:     cfg.Profiler.BlockRate,
-	}, logger.NewSlog(log)
+	}
 }
 
 func ProvideRuntimeMetrics(cfg *config.Config, logger *slog.Logger, lifecycle fx.Lifecycle) {
@@ -287,7 +196,7 @@ func ProvideRuntimeMetrics(cfg *config.Config, logger *slog.Logger, lifecycle fx
 			logger.Info("starting collecting OpenTelemetry runtime metrics")
 
 			if err := runtime.Start(runtime.WithMinimumReadMemStatsInterval(time.Second * 5)); err != nil {
-				logger.Error("starting collecting OpenTelemetry runtime metrics", "error", err)
+				logger.Error("starting collecting OpenTelemetry runtime metrics", semconv.ErrorKey, err)
 
 				return errors.Internal("starting collecting otel runtime metrics", errors.WithCause(err), errors.WithID("server.providers.provide_runtime_metrics"))
 			}
