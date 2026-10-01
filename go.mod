@@ -21,7 +21,9 @@ require (
 	github.com/testcontainers/testcontainers-go v0.40.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.40.0
 	github.com/urfave/cli/v2 v2.27.7
-	github.com/webitel/webitel-go-kit/infra/discovery v0.0.0-20260602143553-df89d5e34680
+	github.com/webitel/webitel-go-kit/infra/discovery v0.0.0-20261001011034-d631118fa669
+	github.com/webitel/webitel-go-kit/infra/health v0.2.0
+	github.com/webitel/webitel-go-kit/infra/health/fx v0.0.0-20261001011034-d631118fa669
 	github.com/webitel/webitel-go-kit/infra/otel v0.0.0-20251222125635-d60448d23a82
 	github.com/webitel/webitel-go-kit/infra/profiler v0.0.0-20260323001146-8a6a55d94da8
 	github.com/webitel/webitel-go-kit/pkg/errors v0.0.0-20251222125635-d60448d23a82
