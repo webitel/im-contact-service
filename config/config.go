@@ -18,6 +18,11 @@ type Config struct {
 	Consul   appconfig.Consul   `mapstructure:"consul"`
 	Pubsub   appconfig.Pubsub   `mapstructure:"pubsub"`
 	Profiler appconfig.Profiler `mapstructure:"profiler"`
+	Health   HealthConfig       `mapstructure:"health"`
+}
+
+type HealthConfig struct {
+	Addr string `mapstructure:"addr"`
 }
 
 type ServiceConfig struct {
@@ -90,6 +95,9 @@ func LoadMigrateConfig() (*Config, error) {
 func registerServiceFlags() {
 	pflag.String("service.addr", "localhost:8080", "gRPC listen address")
 	appconfig.RegisterGRPCConnFlags(pflag.CommandLine, "service.conn", true)
+
+	pflag.String("health.addr", "",
+		"HTTP health probe listen address (/livez, /readyz, /healthz); empty disables the listener")
 }
 
 func (c *Config) validate() error {

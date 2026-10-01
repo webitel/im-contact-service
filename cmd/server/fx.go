@@ -4,9 +4,11 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/webitel/webitel-go-kit/infra/discovery"
+	healthfx "github.com/webitel/webitel-go-kit/infra/health/fx"
 	"github.com/webitel/webitel-go-kit/infra/profiler"
 
 	"github.com/webitel/im-contact-service/config"
+	"github.com/webitel/im-contact-service/infra/db/pg"
 	"github.com/webitel/im-contact-service/infra/pubsub"
 	grpcsrv "github.com/webitel/im-contact-service/infra/server/grpc"
 	"github.com/webitel/im-contact-service/infra/tls"
@@ -26,8 +28,10 @@ func MainModule(cfg *config.Config) fx.Option {
 			ProvideLogger,
 			ProvideSD,
 			ProvideNewDBConnection,
+			pg.ProvidePgxPool,
 			ProvideProfiler,
 		),
+		healthfx.Module(healthfx.Config{HTTPAddr: cfg.Health.Addr}),
 		fx.Invoke(func(_ discovery.DiscoveryProvider) error { return nil }),
 		tls.Module,
 		fx.Invoke(ProvideRuntimeMetrics),
@@ -37,5 +41,8 @@ func MainModule(cfg *config.Config) fx.Option {
 		grpcsrv.Module,
 		grpchandler.Module,
 		profiler.Module,
+
+		fx.Invoke(registerHealth),
+		healthfx.Shutdown(),
 	)
 }

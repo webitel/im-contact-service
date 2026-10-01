@@ -66,3 +66,7 @@ func New(ctx context.Context, logger *slog.Logger, config ConnectionConfig) (*Pg
 func (d *PgxDB) Master() *pgxpool.Pool {
 	return d.master
 }
+
+func ProvidePgxPool(db *PgxDB) *pgxpool.Pool {
+	return db.Master()
+}
