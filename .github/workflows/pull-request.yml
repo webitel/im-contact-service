@@ -47,9 +47,9 @@ jobs:
       binary-name: webitel-im-contact
       ldflags: >
         -s -w
-        -X github.com/webitel/im-contact-service/internal/domain/model.Commit=${{ github.sha }}
-        -X github.com/webitel/im-contact-service/internal/domain/model.CommitDate=${{ github.event.head_commit.timestamp }}
-        -X github.com/webitel/im-contact-service/internal/domain/model.Branch=${{ github.ref_name }}
+        -X github.com/webitel/im-contact-service/internal/domain/model.Commit=${{ needs.prepare.outputs.commit }}
+        -X github.com/webitel/im-contact-service/internal/domain/model.CommitDate=${{ needs.prepare.outputs.commit-timestamp }}
+        -X github.com/webitel/im-contact-service/internal/domain/model.Branch=${{ needs.prepare.outputs.branch }}
         
 
       version: ${{ needs.prepare.outputs.version }}
