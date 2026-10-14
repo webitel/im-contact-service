@@ -17,6 +17,8 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/webitel/webitel-go-kit/infra/discovery"
+	"github.com/webitel/webitel-go-kit/infra/discovery/consul"
+	"github.com/webitel/webitel-go-kit/infra/health"
 	otelsdk "github.com/webitel/webitel-go-kit/infra/otel/sdk"
 	"github.com/webitel/webitel-go-kit/infra/profiler"
 	"github.com/webitel/webitel-go-kit/pkg/errors"
@@ -26,9 +28,8 @@ import (
 	"github.com/webitel/im-contact-service/infra/db/pg"
 	"github.com/webitel/im-contact-service/internal/model"
 
-	_ "github.com/webitel/webitel-go-kit/infra/discovery/consul" // register consul discovery driver
 	// -------------------- plugin(s) -------------------- //
-	_ "github.com/webitel/webitel-go-kit/infra/otel/sdk/log/otlp"
+	_ "github.com/webitel/webitel-go-kit/infra/otel/sdk/log/otlp" // register otel sdk drivers
 	_ "github.com/webitel/webitel-go-kit/infra/otel/sdk/log/stdout"
 	_ "github.com/webitel/webitel-go-kit/infra/otel/sdk/metric/otlp"
 	_ "github.com/webitel/webitel-go-kit/infra/otel/sdk/metric/stdout"
@@ -199,13 +200,14 @@ func (h *multiHandler) WithGroup(name string) slog.Handler {
 	return &multiHandler{handlers: newHandlers}
 }
 
-func ProvideSD(cfg *config.Config, log *slog.Logger, lc fx.Lifecycle) (discovery.DiscoveryProvider, error) {
+func ProvideSD(cfg *config.Config, log *slog.Logger, h *health.Registry, lc fx.Lifecycle) (discovery.DiscoveryProvider, error) {
 	provider, err := discovery.DefaultFactory.CreateProvider(
 		discovery.ProviderConsul,
 		log,
 		cfg.Consul.Addr,
 		discovery.WithHeartbeat[discovery.DiscoveryProvider](true),
 		discovery.WithTimeout[discovery.DiscoveryProvider](time.Second*30),
+		consul.WithReadiness(h.ReadyFunc()),
 	)
 	if err != nil {
 		return nil, err
