@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/fx"
 
 	"github.com/webitel/webitel-go-kit/infra/health"
 
@@ -9,10 +10,13 @@ import (
 )
 
 func registerHealth(
+	lc fx.Lifecycle,
 	h *health.Registry,
 	srv *grpcsrv.Server,
 	pool *pgxpool.Pool,
 ) {
-	h.Critical("grpc", health.ListenerCheck(srv.Listener()))
-	h.Informational("postgres", pool.Ping)
+	lc.Append(fx.StartHook(func() {
+		h.Critical("grpc", health.ListenerCheck(srv.Listener()))
+		h.Informational("postgres", pool.Ping)
+	}))
 }
