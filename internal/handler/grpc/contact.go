@@ -93,6 +93,7 @@ func (c *ContactServer) CreateContact(ctx context.Context, request *impb.CreateC
 		Metadata:      request.GetMetadata(),
 		SubjectID:     request.GetSubject(),
 		IsBot:         request.GetIsBot(),
+		Phone:         request.GetPhone(),
 	})
 	if err != nil {
 		return nil, err
@@ -149,6 +150,7 @@ func (c *ContactServer) Upsert(ctx context.Context, req *impb.CreateContactReque
 			Username:      req.GetUsername(),
 			Metadata:      req.GetMetadata(),
 			SubjectID:     req.GetSubject(),
+			Phone:         req.GetPhone(),
 		}
 		err error
 	)

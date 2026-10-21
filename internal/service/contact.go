@@ -56,6 +56,8 @@ func (s *contactService) Create(ctx context.Context, input *model.Contact) (*mod
 		return nil, err
 	}
 
+	s.normalizePhone(input)
+
 	// TODO
 	// appClient.ValidateApplicationAccess(ctx, input.ApplicationId, input.IssuerId)
 
@@ -83,6 +85,8 @@ func (s *contactService) Upsert(ctx context.Context, contact *model.Contact) (*m
 
 		return nil, err
 	}
+
+	s.normalizePhone(contact)
 
 	contact, isInsert, err := s.store.Upsert(ctx, contact)
 	if err != nil {
@@ -225,4 +229,16 @@ func (s *contactService) Locate(ctx context.Context, locate *model.LocateContact
 	}
 
 	return contact, nil
+}
+
+// normalizePhone brings the contact phone to E.164. An unparsable phone is
+// dropped instead of failing the request: contacts are created on inbound
+// messages, which must not be rejected over a malformed optional field.
+func (s *contactService) normalizePhone(contact *model.Contact) {
+	raw := contact.Phone
+	contact.Phone = model.NormalizePhone(raw)
+
+	if raw != "" && contact.Phone == "" {
+		s.logger.Warn("dropping invalid contact phone", "issuer", contact.IssuerID)
+	}
 }
