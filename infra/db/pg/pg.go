@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/webitel/webitel-go-kit/pkg/errors"
+	"github.com/webitel/webitel-go-kit/pkg/semconv"
 )
 
 type PgxDB struct {
@@ -48,7 +49,7 @@ func New(ctx context.Context, logger *slog.Logger, config ConnectionConfig) (*Pg
 			otelpgx.WithMinimumReadDBStatsInterval(10*time.Second),
 		)
 		if err != nil {
-			logger.Error("[DB] starting recording pool statistic", "error", err)
+			logger.Error("[DB] starting recording pool statistic", semconv.ErrorKey, err)
 
 			return nil, errors.Internal("starting recording pool statistic", errors.WithCause(err), errors.WithID("pg.pg.new"))
 		}

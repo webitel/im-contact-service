@@ -8,6 +8,8 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"go.uber.org/fx"
 
+	"github.com/webitel/webitel-go-kit/pkg/semconv"
+
 	pubsubadapter "github.com/webitel/im-contact-service/internal/adapter/pubsub"
 	"github.com/webitel/im-contact-service/internal/domain/events"
 )
@@ -80,7 +82,7 @@ func NewWatermillRouter(lc fx.Lifecycle, logger *slog.Logger) (*message.Router, 
 		OnStart: func(ctx context.Context) error {
 			go func() {
 				if err := router.Run(ctx); err != nil {
-					logger.Error("watermill router run error", "err", err)
+					logger.Error("watermill router run error", semconv.ErrorKey, err)
 				}
 			}()
 
