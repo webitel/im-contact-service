@@ -18,6 +18,8 @@ type Contact struct {
 	Username string            `json:"username" db:"username"`
 	Metadata map[string]string `json:"metadata" db:"metadata"`
 	IsBot    bool              `jsob:"is_bot" db:"is_bot" json:"is_bot"`
+	// Phone is the contact's phone number in E.164 format; empty if unknown.
+	Phone string `json:"phone" db:"phone"`
 
 	Via []*ViaCommunication `json:"via" db:"via"`
 }
@@ -36,20 +38,21 @@ func (c *Contact) Equal(compare *Contact) bool {
 		c.Name == compare.Name &&
 		c.Type == compare.Type &&
 		c.Username == compare.Username &&
-		c.IsBot == compare.IsBot
+		c.IsBot == compare.IsBot &&
+		c.Phone == compare.Phone
 }
 
 func ContactAllowedFields() []string {
 	return []string{
 		"issuer_id", "application_id", "type", "name", "username", "metadata",
-		"id", "domain_id", "created_at", "updated_at", "subject_id", "is_bot", "via",
+		"id", "domain_id", "created_at", "updated_at", "subject_id", "is_bot", "via", "phone",
 	}
 }
 
 func (c *Contact) DefaultFields() []string {
 	return []string{
 		"issuer_id", "application_id", "type", "name", "username", "metadata",
-		"id", "domain_id", "created_at", "updated_at", "subject_id", "is_bot",
+		"id", "domain_id", "created_at", "updated_at", "subject_id", "is_bot", "phone",
 	}
 }
 

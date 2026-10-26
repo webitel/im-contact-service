@@ -35,15 +35,15 @@ func (c *contactStore) Create(ctx context.Context, contact *model.Contact) (*mod
 		query = `
 			insert into im_contact.contact(
 				domain_id, issuer_id, subject_id,
-				application_id, type, name, username, metadata, is_bot
+				application_id, type, name, username, metadata, is_bot, phone
 			)
 			values(
 				@domain_id, @issuer_id, @subject_id,
-				@application_id, @type, @name, @username, @metadata, @is_bot
+				@application_id, @type, @name, @username, @metadata, @is_bot, @phone
 			)
 			returning
 				id, domain_id, created_at, updated_at, subject_id,
-				issuer_id, application_id, type, name, username, metadata, is_bot
+				issuer_id, application_id, type, name, username, metadata, is_bot, phone
 		`
 		args = pgx.NamedArgs{
 			"domain_id":      contact.DomainID,
@@ -55,6 +55,7 @@ func (c *contactStore) Create(ctx context.Context, contact *model.Contact) (*mod
 			"username":       contact.Username,
 			"metadata":       contact.Metadata,
 			"is_bot":         contact.IsBot,
+			"phone":          contact.Phone,
 		}
 		result *model.Contact
 	)
@@ -261,7 +262,7 @@ func (c *contactStore) Update(ctx context.Context, updater *model.UpdateContactR
 			where domain_id = @domain_id
 				and id = @id
 			returning id, domain_id, created_at, updated_at, subject_id,
-				issuer_id, application_id, type, name, username, metadata
+				issuer_id, application_id, type, name, username, metadata, is_bot, phone
 		`
 		args = pgx.NamedArgs{
 			"id":        updater.ID,
@@ -349,21 +350,23 @@ func (c *contactStore) Upsert(ctx context.Context, contact *model.Contact) (*mod
 	stmt := `
 		with ins as (
 			insert into "im_contact"."contact" (
-				"domain_id", "issuer_id", "subject_id", "application_id", "type", "name", "username", "metadata"
+				"domain_id", "issuer_id", "subject_id", "application_id", "type", "name", "username", "metadata", "phone"
 			)
 			values (
-				@DomainID, @Iss, @Sub, @App, @Type, @Name, @Username, @Metadata
+				@DomainID, @Iss, @Sub, @App, @Type, @Name, @Username, @Metadata, @Phone
 			)
 			on conflict ("domain_id", "issuer_id", "subject_id")
 			do update set
 				"updated_at" = now(),
 				"name" = excluded.name,
 			 	"username" = excluded.username,
-				"metadata" = excluded.metadata
+				"metadata" = excluded.metadata,
+				-- An upsert without a phone keeps the known one.
+				"phone" = coalesce(nullif(excluded.phone, ''), "im_contact"."contact"."phone")
 			where
-				("im_contact"."contact"."name", "im_contact"."contact"."username", "im_contact"."contact"."metadata")
+				("im_contact"."contact"."name", "im_contact"."contact"."username", "im_contact"."contact"."metadata", "im_contact"."contact"."phone")
 				is distinct from
-				(excluded.name, excluded.username, excluded.metadata)
+				(excluded.name, excluded.username, excluded.metadata, coalesce(nullif(excluded.phone, ''), "im_contact"."contact"."phone"))
 			returning
 				id,
 				domain_id,
@@ -376,6 +379,7 @@ func (c *contactStore) Upsert(ctx context.Context, contact *model.Contact) (*mod
 				name,
 				username,
 				metadata,
+				phone,
 				(xmax = 0) as is_insert
 		)
 		select *
@@ -393,6 +397,7 @@ func (c *contactStore) Upsert(ctx context.Context, contact *model.Contact) (*mod
 			name,
 			username,
 			metadata,
+			phone,
 			false as is_insert from im_contact.contact
 		where domain_id = @DomainID
 		and issuer_id = @Iss
@@ -411,6 +416,7 @@ func (c *contactStore) Upsert(ctx context.Context, contact *model.Contact) (*mod
 		"Name":     contact.Name,
 		"Username": contact.Username,
 		"Metadata": contact.Metadata,
+		"Phone":    contact.Phone,
 	}
 
 	var (
@@ -430,6 +436,7 @@ func (c *contactStore) Upsert(ctx context.Context, contact *model.Contact) (*mod
 		&result.Name,
 		&result.Username,
 		&result.Metadata,
+		&result.Phone,
 		&isInsert,
 	); err != nil {
 		if ok, rerr := pg.ErrorIntegrityViolation(err); ok {

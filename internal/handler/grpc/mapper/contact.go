@@ -63,6 +63,7 @@ func MarshalContact(contact *model.Contact) *impb.Contact {
 		DomainId:  int32(contact.DomainID),
 		IsBot:     contact.IsBot,
 		Vias:      MarshalViaList(contact.Via),
+		Phone:     contact.Phone,
 	}
 }
 
