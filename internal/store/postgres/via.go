@@ -242,6 +242,12 @@ func (communicationStore *via) prepareSearchStmt(filter *model.SearchViaCommunic
 	sb := sq.Select(selectFields...).From(communicationRecord.TableName() + " as " + communicationaAllias).PlaceholderFormat(sq.Dollar)
 	sb = ApplyPaging(filter.Page, filter.Limit, sb)
 
+	var err error
+	sb, err = ApplySortOrDefault(communicationRecord.AvailableFields(), filter.Sort, communicationRecord.DefaultSort(), sb)
+	if err != nil {
+		return "", nil, err
+	}
+
 	if sortingField, sortOperator := ExtractSortingOperator(filter.Sort); sortOperator != "" && sortingField != "" {
 		sb = sb.OrderBy(sortingField + " " + sortOperator)
 	}

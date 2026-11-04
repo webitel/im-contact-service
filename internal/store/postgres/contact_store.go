@@ -187,8 +187,10 @@ func (c *contactStore) prepareContactSearchQuery(filter *model.ContactSearchRequ
 
 	contactSelect = ApplyPaging(int(filter.Page), int(filter.Size), contactSelect)
 
-	if sortingField, sortOperator := ExtractSortingOperator(filter.Sort); sortOperator != "" && sortingField != "" {
-		contactSelect = contactSelect.OrderBy(sortingField + " " + sortOperator)
+	var err error
+	contactSelect, err = ApplySortOrDefault(model.ContactAllowedFields(), filter.Sort, model.ContactDefaultSort(), contactSelect)
+	if err != nil {
+		return "", nil, err
 	}
 
 	if filter.DomainID != nil && *filter.DomainID > 0 {

@@ -71,6 +71,8 @@ func (communication *ViaCommunication) DefaultFields() []string {
 
 func (communication *ViaCommunication) TableName() string { return "im_contact.via" }
 
+func (c *ViaCommunication) DefaultSort() string { return "-created_at" }
+
 type SearchViaCommunicationsFilter struct {
 	Sort       string
 	Limit      int
