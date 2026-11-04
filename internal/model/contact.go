@@ -49,6 +49,8 @@ func ContactAllowedFields() []string {
 	}
 }
 
+func ContactDefaultSort() string { return "-created_at" }
+
 func (c *Contact) DefaultFields() []string {
 	return []string{
 		"issuer_id", "application_id", "type", "name", "username", "metadata",

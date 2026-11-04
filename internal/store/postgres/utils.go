@@ -1,9 +1,14 @@
 package postgres
 
 import (
+	"fmt"
+	"slices"
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
+	"google.golang.org/grpc/codes"
+
+	"github.com/webitel/webitel-go-kit/pkg/errors"
 )
 
 const (
@@ -51,4 +56,32 @@ func ExtractSortingOperator(sort string) (string, string) {
 	}
 
 	return "", ""
+}
+
+func ApplySortOrDefault(allowed []string, provided, defaultSort string, sb sq.SelectBuilder) (sq.SelectBuilder, error) {
+	s := strings.TrimSpace(provided)
+	if s == "" {
+		sort, dir := ExtractSortingOperator(defaultSort)
+
+		return sb.OrderBy(fmt.Sprintf("%s %s", sort, dir)), nil
+	}
+
+	sort, dir := ExtractSortingOperator(s)
+
+	if sort == "" {
+		defaultSortName, defaultDir := ExtractSortingOperator(defaultSort)
+
+		return sb.OrderBy(fmt.Sprintf("%s %s", defaultSortName, defaultDir)), nil
+	}
+
+	if !slices.Contains(allowed, sort) {
+		return sb, errors.New(
+			"unsupported sort field",
+			errors.WithID("postgres.utils.apply_sort.unsupported"),
+			errors.WithValue("sort", sort),
+			errors.WithCode(codes.InvalidArgument),
+		)
+	}
+
+	return sb.OrderBy(fmt.Sprintf("%s %s", sort, dir)), nil
 }
