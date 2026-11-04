@@ -18,6 +18,7 @@ func NormalizePhone(raw string) string {
 	}
 
 	var b strings.Builder
+
 	for i, r := range raw {
 		switch {
 		case r >= '0' && r <= '9':

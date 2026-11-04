@@ -165,7 +165,7 @@ func convertStringsToUUID(idStrs []string) (uuid.UUIDs, error) {
 		return nil, nil
 	}
 
-	err := (error)(nil)
+	err := error(nil)
 
 	ids := make([]uuid.UUID, idStrsLen)
 	for i, s := range idStrs {
@@ -179,7 +179,7 @@ func convertStringsToUUID(idStrs []string) (uuid.UUIDs, error) {
 
 func convertDomainViaListToProto(vias []*model.ViaCommunication) ([]*impb.Via, error) {
 	inputLen := len(vias)
-	err := (error)(nil)
+	err := error(nil)
 	proto := make([]*impb.Via, inputLen)
 
 	for i, via := range vias {

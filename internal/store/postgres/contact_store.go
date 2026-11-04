@@ -170,7 +170,7 @@ func (c *contactStore) prepareContactSearchQuery(filter *model.ContactSearchRequ
 			return "", nil, errors.InvalidArgument("zero requested fields are allowed", errors.WithID("postgres.contact_store.prepare_contact_search_query"))
 		}
 	} else {
-		searchFields = (new(model.Contact)).DefaultFields()
+		searchFields = new(model.Contact).DefaultFields()
 	}
 
 	contactSelect := (sq.SelectBuilder{}).From((*model.Contact)(nil).TableName() + " " + contactAlias).PlaceholderFormat(sq.Dollar)
@@ -188,6 +188,7 @@ func (c *contactStore) prepareContactSearchQuery(filter *model.ContactSearchRequ
 	contactSelect = ApplyPaging(int(filter.Page), int(filter.Size), contactSelect)
 
 	var err error
+
 	contactSelect, err = ApplySortOrDefault(model.ContactAllowedFields(), filter.Sort, model.ContactDefaultSort(), contactSelect)
 	if err != nil {
 		return "", nil, err

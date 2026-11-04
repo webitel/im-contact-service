@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	sq "github.com/Masterminds/squirrel"
+
 	"github.com/webitel/im-contact-service/internal/store/postgres"
 )
 
@@ -63,7 +64,6 @@ func TestApplySortOrDefault(t *testing.T) {
 		defaultSort := "+created_at"
 
 		resultSb, err := postgres.ApplySortOrDefault(allowedFields, "", defaultSort, sb)
-
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -85,7 +85,6 @@ func TestApplySortOrDefault(t *testing.T) {
 		defaultSort := "-name"
 
 		resultSb, err := postgres.ApplySortOrDefault(allowedFields, provided, defaultSort, sb)
-
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}

@@ -243,6 +243,7 @@ func (communicationStore *via) prepareSearchStmt(filter *model.SearchViaCommunic
 	sb = ApplyPaging(filter.Page, filter.Limit, sb)
 
 	var err error
+
 	sb, err = ApplySortOrDefault(communicationRecord.AvailableFields(), filter.Sort, communicationRecord.DefaultSort(), sb)
 	if err != nil {
 		return "", nil, err

@@ -23,36 +23,36 @@ type ViaCommunication struct {
 	Metadata      map[string]any `db:"metadata" json:"metadata"`
 }
 
-func (communication *ViaCommunication) CreatedAtUTCUnix() int64 {
-	if communication == nil {
+func (c *ViaCommunication) CreatedAtUTCUnix() int64 {
+	if c == nil {
 		return 0
 	}
 
-	return max(communication.CreatedAt.UTC().UnixMilli(), 0)
+	return max(c.CreatedAt.UTC().UnixMilli(), 0)
 }
 
-func (communication *ViaCommunication) UpdatedAtUTCUnix() int64 {
-	if communication == nil {
+func (c *ViaCommunication) UpdatedAtUTCUnix() int64 {
+	if c == nil {
 		return 0
 	}
 
-	return max(communication.UpdatedAt.UTC().UnixMilli(), 0)
+	return max(c.UpdatedAt.UTC().UnixMilli(), 0)
 }
 
-func (communication *ViaCommunication) Validate() error {
-	if communication == nil {
+func (c *ViaCommunication) Validate() error {
+	if c == nil {
 		return errors.InvalidArgument("received nil pointer communication call", errors.WithID("model.communication.validate"))
 	}
 
-	if communication.ContactID == uuid.Nil {
+	if c.ContactID == uuid.Nil {
 		return errors.InvalidArgument("communication contact ID is required", errors.WithID("model.communication.validate"))
 	}
 
-	if communication.Via == "" || strings.Trim(communication.Via, " ") == "" {
+	if c.Via == "" || strings.Trim(c.Via, " ") == "" {
 		return errors.InvalidArgument("communication via is required", errors.WithID("model.communication.validate"))
 	}
 
-	if communication.DisableReason != nil && utf8.RuneCountInString(*communication.DisableReason) > MaxCharactersInDisableReason {
+	if c.DisableReason != nil && utf8.RuneCountInString(*c.DisableReason) > MaxCharactersInDisableReason {
 		return errors.InvalidArgument(
 			fmt.Sprintf("disable reason has more characters than allowed number of %d", MaxCharactersInDisableReason),
 		)
@@ -61,15 +61,15 @@ func (communication *ViaCommunication) Validate() error {
 	return nil
 }
 
-func (communication *ViaCommunication) AvailableFields() []string {
+func (c *ViaCommunication) AvailableFields() []string {
 	return []string{"contact_id", "via", "disable", "disable_reason", "created_at", "updated_at", "metadata"}
 }
 
-func (communication *ViaCommunication) DefaultFields() []string {
+func (c *ViaCommunication) DefaultFields() []string {
 	return []string{"contact_id", "via", "disable", "disable_reason", "created_at", "updated_at", "metadata"}
 }
 
-func (communication *ViaCommunication) TableName() string { return "im_contact.via" }
+func (c *ViaCommunication) TableName() string { return "im_contact.via" }
 
 func (c *ViaCommunication) DefaultSort() string { return "-created_at" }
 

@@ -11,7 +11,8 @@ var Module = fx.Module("store",
 
 		fx.Annotate(
 			NewContactStore,
-			fx.As(new(store.ContactStore))),
+			fx.As(new(store.ContactStore)),
+		),
 
 		fx.Annotate(
 			NewSettingsStore,

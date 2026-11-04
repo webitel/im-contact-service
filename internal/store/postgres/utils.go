@@ -6,8 +6,9 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/webitel/webitel-go-kit/pkg/errors"
 	"google.golang.org/grpc/codes"
+
+	"github.com/webitel/webitel-go-kit/pkg/errors"
 )
 
 const (
@@ -61,6 +62,7 @@ func ApplySortOrDefault(allowed []string, provided, defaultSort string, sb sq.Se
 	s := strings.TrimSpace(provided)
 	if s == "" {
 		sort, dir := ExtractSortingOperator(defaultSort)
+
 		return sb.OrderBy(fmt.Sprintf("%s %s", sort, dir)), nil
 	}
 
@@ -68,6 +70,7 @@ func ApplySortOrDefault(allowed []string, provided, defaultSort string, sb sq.Se
 
 	if sort == "" {
 		defaultSortName, defaultDir := ExtractSortingOperator(defaultSort)
+
 		return sb.OrderBy(fmt.Sprintf("%s %s", defaultSortName, defaultDir)), nil
 	}
 
