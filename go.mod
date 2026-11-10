@@ -158,7 +158,7 @@ require (
 
 require (
 	github.com/exaring/otelpgx v0.10.0
-	github.com/webitel/webitel-go-kit/appconfig v0.0.0-20260602143553-df89d5e34680
+	github.com/webitel/webitel-go-kit/appconfig v0.1.1-0.20261110114623-1cd41cd688ca
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.68.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.36.0
 	go.opentelemetry.io/otel/sdk/metric v1.43.0
